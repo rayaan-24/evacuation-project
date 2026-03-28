@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smart Evacuation ACO</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Exo+2:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0d0f14; --panel: #13161e; --card: #1a1d27; --input: #0f1117;
+  --border: #2a2d3a; --text: #e8eaf0; --muted: #8b90a0; --dim: #555a6e;
+  --accent: #ff6b2b; --green: #22c55e; --blue: #3b8fdb;
+  --fire: #ff4444; --purple: #a78bfa; --yellow: #fbbf24;
+  --mono: 'Share Tech Mono', monospace; --body: 'Exo 2', sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--body);background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direction:column;overflow:hidden}
+.hdr{display:flex;justify-content:space-between;align-items:center;padding:10px 20px;background:var(--panel);border-bottom:2px solid var(--accent);flex-shrink:0}
+.hdr-l{display:flex;align-items:center;gap:12px}
+.logo{font-size:1.8rem;animation:pop 2s ease-in-out infinite}
+@keyframes pop{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
+.ttl{font-size:1.4rem;font-weight:900;letter-spacing:2px;text-transform:uppercase}
+.ttl span{color:var(--accent)}
+.sub{font-size:0.65rem;color:var(--muted);font-family:var(--mono);letter-spacing:1px;text-transform:uppercase}
+.badge{display:flex;align-items:center;gap:6px;padding:5px 12px;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.4);border-radius:20px;font-size:0.68rem;font-family:var(--mono);color:var(--green)}
+.dot{width:7px;height:7px;background:var(--green);border-radius:50%;animation:blink 1.5s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+.main{display:grid;grid-template-columns:240px 1fr 260px;flex:1;min-height:0}
+.lpanel{background:var(--panel);border-right:1px solid var(--border);padding:14px 12px;overflow-y:auto;display:flex;flex-direction:column;gap:12px}
+.ptitle{font-size:0.72rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--accent);padding-bottom:8px;border-bottom:1px solid var(--border);font-family:var(--mono)}
+.cg{display:flex;flex-direction:column;gap:6px}
+.cl{font-size:0.65rem;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--muted);font-family:var(--mono)}
+select{background:var(--input);border:1px solid var(--border);color:var(--text);padding:7px 10px;border-radius:6px;font-size:0.8rem;width:100%;cursor:pointer;font-family:var(--body)}
+select:focus{outline:none;border-color:var(--accent)}
+.cblist{display:flex;flex-direction:column;gap:4px;max-height:180px;overflow-y:auto}
+.cbl{display:flex;align-items:center;gap:7px;font-size:0.76rem;cursor:pointer;padding:3px 5px;border-radius:4px}
+.cbl:hover{background:var(--card)}
+.cbl input{accent-color:var(--fire);width:13px;height:13px}
+.runbtn{background:linear-gradient(135deg,var(--accent),#cc4a10);color:#fff;border:none;padding:11px;border-radius:8px;font-size:0.8rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;font-family:var(--mono);transition:all .2s;display:flex;align-items:center;justify-content:center;gap:6px}
+.runbtn:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(255,107,43,.4)}
+.runbtn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.clrbtn{background:transparent;border:1px solid var(--border);color:var(--muted);padding:7px;border-radius:6px;font-size:0.72rem;cursor:pointer;font-family:var(--mono);letter-spacing:1px;transition:all .2s;width:100%}
+.clrbtn:hover{border-color:var(--muted);color:var(--text)}
+.lgd{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px}
+.lgd-t{font-size:0.65rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);font-family:var(--mono);margin-bottom:8px}
+.li{display:flex;align-items:center;gap:8px;font-size:0.72rem;color:var(--muted);padding:2px 0}
+.lc{width:16px;height:10px;border-radius:2px;flex-shrink:0}
+.mapsec{background:#0a0c10;display:flex;flex-direction:column;overflow:hidden}
+.maphdr{display:flex;justify-content:space-between;align-items:center;padding:8px 14px;background:var(--panel);border-bottom:1px solid var(--border);flex-shrink:0;gap:16px}
+.maptitle{font-size:0.78rem;font-weight:700;font-family:var(--mono);letter-spacing:1px}
+.mapscale{font-size:0.65rem;color:var(--dim);font-family:var(--mono);text-align:right}
+.cwrap{flex:1;display:flex;align-items:center;justify-content:center;padding:12px;position:relative;overflow:auto}
+#cvs{border:1px solid var(--border);border-radius:8px;box-shadow:0 0 30px rgba(255,107,43,.05);display:block;max-width:100%;height:auto}
+.overlay{display:none;position:absolute;inset:0;background:rgba(10,12,16,.85);align-items:center;justify-content:center;flex-direction:column;gap:10px;border-radius:8px;backdrop-filter:blur(4px)}
+.overlay.on{display:flex}
+.spin{width:44px;height:44px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.rpanel{background:var(--panel);border-left:1px solid var(--border);padding:14px 12px;overflow-y:auto;display:flex;flex-direction:column;gap:12px}
+.stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+.sc{background:var(--card);border:1px solid var(--border);border-radius:6px;padding:8px 4px;text-align:center}
+.sv{font-size:1.1rem;font-weight:700;color:var(--green);font-family:var(--mono)}
+.sk{font-size:0.58rem;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-top:2px}
+.alert{background:rgba(255,68,68,.1);border:1px solid rgba(255,68,68,.4);border-radius:6px;padding:9px 11px;font-size:0.75rem;color:#ff8080;font-family:var(--mono);animation:fborder 1.5s infinite;display:none}
+@keyframes fborder{0%,100%{border-color:rgba(255,68,68,.4)}50%{border-color:rgba(255,68,68,1)}}
+.dircont{flex:1;overflow-y:auto}
+.dph{display:flex;flex-direction:column;align-items:center;justify-content:center;height:180px;text-align:center;color:var(--dim);gap:6px;font-size:0.78rem}
+.dph .ic{font-size:2.2rem;margin-bottom:6px}
+.step{display:flex;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);animation:slin .3s ease}
+@keyframes slin{from{transform:translateX(16px);opacity:0}to{transform:translateX(0);opacity:1}}
+.snum{width:22px;height:22px;background:var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.62rem;font-weight:700;flex-shrink:0;font-family:var(--mono)}
+.stxt{font-size:0.76rem;color:var(--text);line-height:1.5}
+.sdst{font-size:0.62rem;color:var(--dim);font-family:var(--mono);margin-top:2px}
+.step.ex .snum{background:var(--green)}
+.step.ex .stxt{color:var(--green);font-weight:600}
+.iotpanel{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px}
+.iott{font-size:0.65rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--blue);font-family:var(--mono);margin-bottom:8px}
+.srow{display:flex;align-items:center;gap:7px;padding:5px 0;font-size:0.72rem;color:var(--muted);border-bottom:1px solid var(--border)}
+.srow:last-child{border:none}
+.sdot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.sdot.safe{background:var(--green)}
+.sdot.fire{background:var(--fire);animation:blink .8s infinite}
+.sval{margin-left:auto;font-family:var(--mono);font-size:0.65rem}
+::-webkit-scrollbar{width:3px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+</style>
+</head>
+<body>
+
+<header class="hdr">
+  <div class="hdr-l">
+    <div class="logo">!</div>
+    <div>
+      <h1 class="ttl">SmartEvac <span>ACO</span></h1>
+      <p class="sub">AI-Based Emergency Evacuation - Ant Colony Optimization</p>
+    </div>
+  </div>
+  <div class="badge"><span class="dot"></span> LIVE DEMO - JSON Driven Layout</div>
+</header>
+
+<div class="main">
+  <aside class="lpanel">
+    <div class="ptitle">Control Panel</div>
+
+    <div class="cg">
+      <label class="cl">Start Location</label>
+      <select id="startRoom">
+        <option value="">-- Select Room --</option>
+      </select>
+    </div>
+
+    <div class="cg">
+      <label class="cl">Fire Location(s)</label>
+      <div class="cblist" id="fireCBs"></div>
+    </div>
+
+    <div class="cg">
+      <label class="cl">Emergency Type</label>
+      <select id="emerType">
+        <option value="fire">Fire</option>
+        <option value="gas">Gas Leak</option>
+        <option value="earthquake">Earthquake</option>
+        <option value="general">General</option>
+      </select>
+    </div>
+
+    <button class="runbtn" id="runBtn" onclick="runEvac()">RUN ACO EVACUATION</button>
+    <button class="clrbtn" onclick="resetAll()">Reset Map</button>
+
+    <div class="lgd">
+      <div class="lgd-t">Legend</div>
+      <div class="li"><span class="lc" style="background:#e8e8e8;border:1px solid #999"></span> Room</div>
+      <div class="li"><span class="lc" style="background:#f0f0f0;border:1px solid #ccc"></span> Corridor</div>
+      <div class="li"><span class="lc" style="background:#3b8fdb"></span> Start Point</div>
+      <div class="li"><span class="lc" style="background:#ff4444"></span> Fire Zone</div>
+      <div class="li"><span class="lc" style="background:#22c55e"></span> Safe Path</div>
+      <div class="li"><span class="lc" style="background:#22c55e"></span> Exit</div>
+      <div class="li"><span class="lc" style="background:#a78bfa"></span> Staircase</div>
+      <div class="li"><span class="lc" style="background:#94a3b8"></span> Lift (Disabled)</div>
+      <div class="li"><span class="lc" style="background:#fff;border:1px solid #111"></span> Door</div>
+      <div class="li"><span class="lc" style="background:#6b7280"></span> Blocked Zone</div>
+    </div>
+  </aside>
+
+  <div class="mapsec">
+    <div class="maphdr">
+      <span class="maptitle" id="mapTitle">Building Layout</span>
+      <span class="mapscale" id="mapScale">Loading layout...</span>
+    </div>
+    <div class="cwrap">
+      <canvas id="cvs" width="800" height="530"></canvas>
+      <div class="overlay" id="ov">
+        <div class="spin"></div>
+        <p style="font-family:var(--mono);font-size:.82rem">Running ACO algorithm...</p>
+        <p style="font-size:.7rem;color:var(--dim);font-family:var(--mono)">Computing the safest route</p>
+      </div>
+    </div>
+  </div>
+
+  <aside class="rpanel">
+    <div class="ptitle">Evacuation Plan</div>
+    <div class="stats" id="stats" style="display:none">
+      <div class="sc"><div class="sv" id="sDist">--</div><div class="sk">Distance</div></div>
+      <div class="sc"><div class="sv" id="sSteps">--</div><div class="sk">Steps</div></div>
+      <div class="sc"><div class="sv" id="sExit">--</div><div class="sk">Exit</div></div>
+    </div>
+    <div class="alert" id="alert"></div>
+    <div class="dircont" id="dirs">
+      <div class="dph"><div class="ic">A</div><p>Select a start room and fire location,<br>then click <strong>RUN ACO EVACUATION</strong></p><p style="font-size:.68rem;opacity:.6;margin-top:4px">The backend pathfinder will use building_layout.json.</p></div>
+    </div>
+    <div class="iotpanel">
+      <div class="iott">IoT Sensor Status</div>
+      <div id="sensorList"></div>
+    </div>
+  </aside>
+</div>
+
+<script>
+let LAYOUT = null;
+let ROOM_LOOKUP = {};
+let SENSOR_ORDER = [];
+let fireSources = [];
+let currentPath = [];
+let pathProg = 0;
+let rafH = null;
+let activeBlockedElements = new Set();
+let activeHazardZones = [];
+
+const cvs = document.getElementById("cvs");
+const ctx = cvs.getContext("2d");
+const VIEW = {padding: 32, pixelsPerMeter: 16};
+const API_BASES = (() => {
+  const bases = [];
+  if (window.location.protocol.startsWith("http")) {
+    bases.push(window.location.origin);
+  }
+  bases.push("http://localhost:5000");
+  return [...new Set(bases)];
+})();
+
+function normalizeRect(item) {
+  return {
+    ...item,
+    w: item.w ?? item.width ?? 0,
+    h: item.h ?? item.height ?? 0,
+    cap: item.cap ?? item.capacity ?? 0
+  };
+}
+
+function normalizeLayout(raw) {
+  const rooms = (raw.rooms || []).map(normalizeRect);
+  const corridors = (raw.corridors || []).map(normalizeRect);
+  const stairs = (raw.stairs || []).map(normalizeRect);
+  const lifts = (raw.lifts || []).map(normalizeRect);
+  const exits = (raw.exits || []).map(normalizeRect);
+  const doors = (raw.doors || []).map(normalizeRect);
+  const hazardZones = (raw.hazard_zones || []).map(normalizeRect);
+  const graph = {};
+
+  (raw.waypoints || []).forEach(wp => {
+    graph[wp.id] = {x: wp.x, y: wp.y, label: wp.label || wp.id};
+  });
+  exits.forEach(ex => {
+    graph[ex.id] = {x: ex.x + ex.w / 2, y: ex.y + ex.h / 2, label: ex.name || ex.id};
+  });
+
+  return {
+    building: raw.building || {},
+    rooms,
+    corridors,
+    stairs,
+    lifts,
+    exits,
+    doors,
+    hazardZones,
+    waypoints: raw.waypoints || [],
+    connections: raw.connections || {},
+    sensor_map: raw.sensor_map || {},
+    graph
+  };
+}
+
+function roomCenter(room) {
+  return {x: room.x + room.w / 2, y: room.y + room.h / 2};
+}
+
+function pxX(x) {
+  return VIEW.padding + x * VIEW.pixelsPerMeter;
+}
+
+function pxY(y) {
+  return VIEW.padding + y * VIEW.pixelsPerMeter;
+}
+
+function pxSize(len) {
+  return len * VIEW.pixelsPerMeter;
+}
+
+function setCanvasSize() {
+  const rects = [
+    ...LAYOUT.rooms,
+    ...LAYOUT.corridors,
+    ...LAYOUT.stairs,
+    ...LAYOUT.lifts,
+    ...LAYOUT.exits,
+    ...LAYOUT.doors,
+    ...LAYOUT.hazardZones
+  ];
+  const maxX = rects.reduce((m, item) => Math.max(m, item.x + item.w), 0);
+  const maxY = rects.reduce((m, item) => Math.max(m, item.y + item.h), 0);
+  const ppm = Number(LAYOUT.building.pixels_per_meter || 16);
+  VIEW.pixelsPerMeter = Number.isFinite(ppm) && ppm > 0 ? ppm : 16;
+  cvs.width = Math.ceil(pxSize(Math.max(LAYOUT.building.width || 0, maxX)) + VIEW.padding * 2);
+  cvs.height = Math.ceil(pxSize(Math.max(LAYOUT.building.height || 0, maxY)) + VIEW.padding * 2);
+}
+
+function sensorLabel(sensorId, roomId) {
+  const room = ROOM_LOOKUP[roomId];
+  const pretty = sensorId.replace("_", " ").replace(/\b\w/g, c => c.toUpperCase());
+  return room ? `${pretty} - ${room.name} [${room.id}]` : `${pretty} - ${roomId}`;
+}
+
+function populateControls() {
+  const start = document.getElementById("startRoom");
+  const fires = document.getElementById("fireCBs");
+  const sensors = document.getElementById("sensorList");
+
+  start.innerHTML = '<option value="">-- Select Room --</option>';
+  fires.innerHTML = "";
+  sensors.innerHTML = "";
+
+  LAYOUT.rooms.forEach(room => {
+    const option = document.createElement("option");
+    option.value = room.id;
+    option.textContent = `${room.name} [${room.id}]`;
+    start.appendChild(option);
+  });
+
+  const fireSourcesForUi = [
+    ...LAYOUT.rooms.map(room => ({id: room.id, name: room.name, kind: "Room"})),
+    ...LAYOUT.corridors.map(corridor => ({id: corridor.id, name: corridor.name, kind: "Corridor"}))
+  ];
+
+  fireSourcesForUi.forEach(item => {
+    const label = document.createElement("label");
+    label.className = "cbl";
+    label.innerHTML = `<input type="checkbox" value="${item.id}"> ${item.name} [${item.id}] - ${item.kind}`;
+    fires.appendChild(label);
+  });
+
+  SENSOR_ORDER = Object.entries(LAYOUT.sensor_map);
+  SENSOR_ORDER.forEach(([sensorId, roomId]) => {
+    const row = document.createElement("div");
+    row.className = "srow";
+    row.dataset.sensorId = sensorId;
+    row.dataset.roomId = roomId;
+    row.innerHTML = `<span class="sdot safe"></span><span>${sensorLabel(sensorId, roomId)}</span><span class="sval" style="color:var(--green)">Normal</span>`;
+    sensors.appendChild(row);
+  });
+}
+
+async function fetchJson(path) {
+  const candidates = [];
+
+  if (path.startsWith("http://") || path.startsWith("https://")) {
+    candidates.push(path);
+  } else {
+    API_BASES.forEach(base => candidates.push(`${base}${path}`));
+    candidates.push(path);
+  }
+
+  for (const url of candidates) {
+    try {
+      const res = await fetch(url);
+      if (res.ok) {
+        return await res.json();
+      }
+    } catch (err) {
+    }
+  }
+  throw new Error(`Unable to load ${path}. Start the Flask server at http://localhost:5000 and open the app from there.`);
+}
+
+async function fetchLayout() {
+  return fetchJson("/layout");
+}
+
+function drawAll() {
+  if (!LAYOUT) return;
+  ctx.clearRect(0, 0, cvs.width, cvs.height);
+  ctx.fillStyle = "#c8c8c8";
+  ctx.fillRect(0, 0, cvs.width, cvs.height);
+  drawGrid();
+  drawCorridors();
+  drawRooms();
+  drawDoors();
+  drawStairs();
+  drawLifts();
+  drawExits();
+  drawHazards();
+  drawWaypoints();
+  drawRuler();
+  for (const sourceId of fireSources) drawFireSource(sourceId);
+  if (currentPath.length > 1) drawPath();
+}
+
+function drawGrid() {
+  ctx.strokeStyle = "rgba(60,60,60,0.18)";
+  ctx.lineWidth = 1;
+  for (let x = 0; x <= (LAYOUT.building.width || 0); x += 1) {
+    const px = pxX(x);
+    ctx.beginPath();
+    ctx.moveTo(px, VIEW.padding / 2);
+    ctx.lineTo(px, cvs.height - VIEW.padding / 2);
+    ctx.stroke();
+  }
+  for (let y = 0; y <= (LAYOUT.building.height || 0); y += 1) {
+    const py = pxY(y);
+    ctx.beginPath();
+    ctx.moveTo(VIEW.padding / 2, py);
+    ctx.lineTo(cvs.width - VIEW.padding / 2, py);
+    ctx.stroke();
+  }
+}
+
+function drawCorridors() {
+  for (const c of LAYOUT.corridors) {
+    const isBlocked = activeBlockedElements.has(c.id);
+    const x = pxX(c.x);
+    const y = pxY(c.y);
+    const w = pxSize(c.w);
+    const h = pxSize(c.h);
+    ctx.fillStyle = isBlocked ? "#6b7280" : "#f0f0f0";
+    ctx.fillRect(x, y, w, h);
+    ctx.strokeStyle = isBlocked ? "#111827" : "#ccc";
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 4]);
+    ctx.strokeRect(x, y, w, h);
+    ctx.setLineDash([]);
+    ctx.fillStyle = isBlocked ? "#fca5a5" : "#aaa";
+    ctx.font = "bold 11px var(--mono)";
+    ctx.textAlign = "center";
+    ctx.fillText((c.name || c.id || "CORRIDOR").toUpperCase(), x + w / 2, y + h / 2 + 4);
+  }
+}
+
+function drawRooms() {
+  for (const r of LAYOUT.rooms) {
+    const isFire = fireSources.includes(r.id);
+    const isBlocked = activeBlockedElements.has(r.id);
+    const x = pxX(r.x);
+    const y = pxY(r.y);
+    const w = pxSize(r.w);
+    const h = pxSize(r.h);
+    ctx.fillStyle = isFire ? "#ffdddd" : isBlocked ? "#9ca3af" : "#e8e8e8";
+    ctx.fillRect(x, y, w, h);
+    ctx.strokeStyle = isFire ? "#ff4444" : isBlocked ? "#1f2937" : "#999";
+    ctx.lineWidth = isFire ? 2.5 : 1.5;
+    ctx.strokeRect(x, y, w, h);
+
+    ctx.fillStyle = isFire ? "#cc0000" : isBlocked ? "#111827" : "#222";
+    ctx.font = "bold 11px 'Exo 2',sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText(r.name, x + w / 2, y + h / 2 - 6);
+
+    ctx.font = "9px var(--mono)";
+    ctx.fillStyle = "#888";
+    ctx.fillText(`[${r.id}]`, x + w / 2, y + h / 2 + 8);
+
+    ctx.font = "8px var(--mono)";
+    ctx.fillStyle = "#aaa";
+    ctx.fillText(`${r.w.toFixed(0)}m x ${r.h.toFixed(0)}m`, x + w / 2, y + h / 2 + 20);
+
+    ctx.font = "8px 'Exo 2',sans-serif";
+    ctx.fillStyle = "#bbb";
+    ctx.fillText(`Cap:${r.cap}`, x + w / 2, y + h - 6);
+  }
+}
+
+function drawDoors() {
+  for (const d of LAYOUT.doors) {
+    ctx.fillStyle = "#ffffff";
+    ctx.strokeStyle = "#111827";
+    ctx.lineWidth = 1;
+    ctx.fillRect(pxX(d.x), pxY(d.y), Math.max(pxSize(d.w), 4), Math.max(pxSize(d.h), 4));
+    ctx.strokeRect(pxX(d.x), pxY(d.y), Math.max(pxSize(d.w), 4), Math.max(pxSize(d.h), 4));
+  }
+}
+
+function drawStairs() {
+  for (const s of LAYOUT.stairs) {
+    const x = pxX(s.x);
+    const y = pxY(s.y);
+    const w = pxSize(s.w);
+    const h = pxSize(s.h);
+    ctx.fillStyle = "#c4b5fd";
+    ctx.fillRect(x, y, w, h);
+    ctx.strokeStyle = "#7c3aed";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(x, y, w, h);
+    ctx.strokeStyle = "#7c3aed";
+    ctx.lineWidth = 1;
+    for (let i = 1; i < 5; i++) {
+      ctx.beginPath();
+      ctx.moveTo(x, y + i * h / 5);
+      ctx.lineTo(x + w, y + i * h / 5);
+      ctx.stroke();
+    }
+    ctx.fillStyle = "#4c1d95";
+    ctx.font = "bold 8px 'Exo 2',sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText("STAIR", x + w / 2, y + h / 2 + 3);
+  }
+}
+
+function drawLifts() {
+  for (const l of LAYOUT.lifts) {
+    const x = pxX(l.x);
+    const y = pxY(l.y);
+    const w = pxSize(l.w);
+    const h = pxSize(l.h);
+    ctx.fillStyle = "#94a3b8";
+    ctx.fillRect(x, y, w, h);
+    ctx.strokeStyle = "#64748b";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(x, y, w, h);
+    ctx.strokeStyle = "#ef4444";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(x + 5, y + 5);
+    ctx.lineTo(x + w - 5, y + h - 5);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x + w - 5, y + 5);
+    ctx.lineTo(x + 5, y + h - 5);
+    ctx.stroke();
+    ctx.fillStyle = "#1e293b";
+    ctx.font = "bold 8px 'Exo 2',sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText(l.name || l.id, x + w / 2, y + h / 2 + 3);
+  }
+}
+
+function drawExits() {
+  const pulse = 0.5 + 0.5 * Math.sin(Date.now() / 500);
+  for (const e of LAYOUT.exits) {
+    const x = pxX(e.x);
+    const y = pxY(e.y);
+    const w = pxSize(e.w);
+    const h = Math.max(pxSize(e.h), 8);
+    const grd = ctx.createRadialGradient(x + w / 2, y + h / 2, 2, x + w / 2, y + h / 2, 30);
+    grd.addColorStop(0, `rgba(34,197,94,${0.3 + pulse * 0.3})`);
+    grd.addColorStop(1, "rgba(34,197,94,0)");
+    ctx.fillStyle = grd;
+    ctx.fillRect(x - 20, y - 20, w + 40, h + 40);
+    ctx.fillStyle = "#22c55e";
+    ctx.fillRect(x, y, w, h);
+    ctx.strokeStyle = "#166534";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(x, y, w, h);
+    ctx.fillStyle = "#14532d";
+    ctx.font = "bold 7px var(--mono)";
+    ctx.textAlign = "center";
+    ctx.fillText(e.name, x + w / 2, y + h + 11);
+  }
+  requestAnimationFrame(drawAll);
+}
+
+function drawHazards() {
+  for (const hz of activeHazardZones) {
+    ctx.fillStyle = "rgba(255, 68, 68, 0.35)";
+    ctx.strokeStyle = "#b91c1c";
+    ctx.lineWidth = 2;
+    ctx.fillRect(pxX(hz.x), pxY(hz.y), pxSize(hz.w), pxSize(hz.h));
+    ctx.strokeRect(pxX(hz.x), pxY(hz.y), pxSize(hz.w), pxSize(hz.h));
+  }
+}
+
+function drawWaypoints() {
+  Object.values(LAYOUT.graph).forEach(node => {
+    ctx.beginPath();
+    ctx.arc(pxX(node.x), pxY(node.y), 3, 0, Math.PI * 2);
+    ctx.fillStyle = "#3b8fdb";
+    ctx.fill();
+  });
+}
+
+function drawFireSource(sourceId) {
+  const source = [...LAYOUT.rooms, ...LAYOUT.corridors].find(item => item.id === sourceId);
+  if (!source) return;
+  const flick = 0.7 + 0.3 * Math.sin(Date.now() / 200);
+  const center = roomCenter(source);
+  const cx = pxX(center.x);
+  const cy = pxY(center.y);
+  const grd = ctx.createRadialGradient(cx, cy, 8, cx, cy, Math.max(pxSize(source.w), pxSize(source.h)));
+  grd.addColorStop(0, `rgba(255,100,0,${0.6 * flick})`);
+  grd.addColorStop(0.5, `rgba(255,50,0,${0.3 * flick})`);
+  grd.addColorStop(1, "rgba(255,0,0,0)");
+  ctx.fillStyle = grd;
+  ctx.fillRect(pxX(source.x) - 10, pxY(source.y) - 10, pxSize(source.w) + 20, pxSize(source.h) + 20);
+  ctx.fillStyle = "#ff4444";
+  ctx.font = "bold 8px var(--mono)";
+  ctx.textAlign = "center";
+  ctx.fillText("FIRE", cx, pxY(source.y) + 12);
+}
+
+function drawPath() {
+  const pts = currentPath;
+  const total = pts.length;
+  const stops = Math.floor(pathProg * (total - 1));
+  if (stops < 1) return;
+
+  ctx.beginPath();
+  ctx.moveTo(pxX(pts[0].x), pxY(pts[0].y));
+  for (let i = 1; i <= stops; i++) ctx.lineTo(pxX(pts[i].x), pxY(pts[i].y));
+  ctx.shadowColor = "#22c55e66";
+  ctx.shadowBlur = 12;
+  ctx.strokeStyle = "#22c55e";
+  ctx.lineWidth = 4;
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  ctx.setLineDash([8, 4]);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.shadowBlur = 0;
+
+  for (let i = 0; i <= stops; i++) {
+    ctx.beginPath();
+    ctx.arc(pxX(pts[i].x), pxY(pts[i].y), 5, 0, Math.PI * 2);
+    ctx.fillStyle = i === 0 ? "#3b8fdb" : i === total - 1 ? "#22c55e" : "#22c55e";
+    ctx.fill();
+    ctx.strokeStyle = "#fff";
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  }
+}
+
+function drawRuler() {
+  ctx.strokeStyle = "#aaa";
+  ctx.fillStyle = "#888";
+  ctx.lineWidth = 0.5;
+  ctx.font = "7px var(--mono)";
+  ctx.textAlign = "center";
+  const y = cvs.height - 10;
+  const x1 = VIEW.padding;
+  const x2 = x1 + pxSize(LAYOUT.building.width || 0);
+  ctx.beginPath();
+  ctx.moveTo(x1, y);
+  ctx.lineTo(x2, y);
+  ctx.stroke();
+  for (let meter = 0; meter <= (LAYOUT.building.width || 0); meter += 5) {
+    const x = x1 + pxSize(meter);
+    ctx.beginPath();
+    ctx.moveTo(x, y - 4);
+    ctx.lineTo(x, y + 4);
+    ctx.stroke();
+    ctx.fillText(`${meter}m`, x, y - 6);
+  }
+}
+
+function animatePath(coords) {
+  currentPath = coords;
+  pathProg = 0;
+  if (rafH) cancelAnimationFrame(rafH);
+  function step() {
+    pathProg = Math.min(1, pathProg + 0.025);
+    drawAll();
+    if (pathProg < 1) rafH = requestAnimationFrame(step);
+  }
+  rafH = requestAnimationFrame(step);
+}
+
+function showAlert(msg) {
+  const el = document.getElementById("alert");
+  el.style.display = "block";
+  el.textContent = msg;
+}
+
+function showDirs(dirs) {
+  if (!dirs.length) {
+    document.getElementById("dirs").innerHTML = '<div class="dph"><div class="ic">X</div><p>No safe path found</p></div>';
+    return;
+  }
+
+  let h = `<div style="padding:4px 0 8px;font-size:.65rem;color:var(--dim);font-family:var(--mono);letter-spacing:1px">DIRECTIONS (${dirs.length} STEPS)</div>`;
+  dirs.forEach(d => {
+    const isExit = String(d.to || "").startsWith("E") || String(d.instruction || "").includes("EVACUATE");
+    h += `<div class="step ${isExit ? "ex" : ""}">
+      <div class="snum">${d.step}</div>
+      <div>
+        <div class="stxt">${d.instruction || d.text}</div>
+        <div class="sdst">from ${d.from} to ${d.to} | ${d.distance_m ?? d.dist}m</div>
+      </div>
+    </div>`;
+  });
+  document.getElementById("dirs").innerHTML = h;
+}
+
+function updateSensors(fires) {
+  const rows = document.querySelectorAll("#sensorList .srow");
+  rows.forEach(row => {
+    row.querySelector(".sdot").className = "sdot safe";
+    row.querySelector(".sval").style.color = "var(--green)";
+    row.querySelector(".sval").textContent = "Normal";
+  });
+  fires.forEach(roomId => {
+    const row = Array.from(rows).find(r => r.dataset.roomId === roomId);
+    if (!row) return;
+    row.querySelector(".sdot").className = "sdot fire";
+    row.querySelector(".sval").style.color = "var(--fire)";
+    row.querySelector(".sval").textContent = "FIRE!";
+  });
+}
+
+async function runEvac() {
+  if (!LAYOUT) {
+    showAlert("Layout is still loading.");
+    return;
+  }
+
+  const start = document.getElementById("startRoom").value;
+  const emergencyType = document.getElementById("emerType").value;
+  const fires = Array.from(document.querySelectorAll("#fireCBs input:checked")).map(c => c.value);
+
+  if (!start) {
+    showAlert("Please select a start location.");
+    return;
+  }
+  if (fires.includes(start)) {
+    showAlert("You cannot start from a burning room.");
+    return;
+  }
+
+  fireSources = [...fires];
+  activeBlockedElements = new Set(fires);
+  activeHazardZones = [];
+  document.getElementById("runBtn").disabled = true;
+  document.getElementById("ov").classList.add("on");
+  updateSensors(fires.filter(id => ROOM_LOOKUP[id]));
+
+  try {
+    let result = null;
+    let lastError = null;
+
+    for (const base of API_BASES) {
+      try {
+        const response = await fetch(`${base}/find-path`, {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({
+            start_room: start,
+            fire_locations: fires,
+            emergency_type: emergencyType
+          })
+        });
+
+        result = await response.json();
+        if (!response.ok || result.success === false) {
+          const error = new Error(result.error || "No safe path found.");
+          error.result = result;
+          throw error;
+        }
+        lastError = null;
+        break;
+      } catch (err) {
+        lastError = err;
+      }
+    }
+
+    if (!result || lastError) {
+      throw lastError || new Error("Could not reach the backend pathfinder.");
+    }
+
+    animatePath(result.path_coords || []);
+    activeBlockedElements = new Set(result.blocked_elements || fires);
+    activeHazardZones = result.hazard_zones || [];
+    document.getElementById("stats").style.display = "grid";
+    document.getElementById("sDist").textContent = `${Number(result.total_distance_m || 0).toFixed(1)}m`;
+    document.getElementById("sSteps").textContent = result.total_steps ?? (result.directions || []).length;
+    document.getElementById("sExit").textContent = result.best_exit || "--";
+    showAlert(`${String(emergencyType).toUpperCase()} emergency | Evacuate via ${result.best_exit} | ${Number(result.total_distance_m || 0).toFixed(1)}m total`);
+    showDirs(result.directions || []);
+  } catch (err) {
+    activeBlockedElements = new Set(err.result?.blocked_elements || fires);
+    activeHazardZones = err.result?.hazard_zones || [];
+    showAlert(`Pathfinding failed: ${err.message}`);
+  } finally {
+    document.getElementById("ov").classList.remove("on");
+    document.getElementById("runBtn").disabled = false;
+  }
+}
+
+function resetAll() {
+  fireSources = [];
+  currentPath = [];
+  pathProg = 0;
+  activeBlockedElements = new Set();
+  activeHazardZones = [];
+  if (rafH) cancelAnimationFrame(rafH);
+  document.getElementById("startRoom").value = "";
+  document.getElementById("emerType").value = "fire";
+  document.querySelectorAll("#fireCBs input").forEach(c => c.checked = false);
+  document.getElementById("stats").style.display = "none";
+  document.getElementById("alert").style.display = "none";
+  document.getElementById("dirs").innerHTML = '<div class="dph"><div class="ic">A</div><p>Select a start room and fire location,<br>then click <strong>RUN ACO EVACUATION</strong></p><p style="font-size:.68rem;opacity:.6;margin-top:4px">The backend pathfinder will use building_layout.json.</p></div>';
+  document.querySelectorAll("#sensorList .srow").forEach(row => {
+    row.querySelector(".sdot").className = "sdot safe";
+    row.querySelector(".sval").style.color = "var(--green)";
+    row.querySelector(".sval").textContent = "Normal";
+  });
+  drawAll();
+}
+
+async function initApp() {
+  try {
+    const raw = await fetchLayout();
+    LAYOUT = normalizeLayout(raw);
+    ROOM_LOOKUP = Object.fromEntries(LAYOUT.rooms.map(room => [room.id, room]));
+    document.getElementById("mapTitle").textContent = LAYOUT.building.name || "Building Layout";
+    document.getElementById("mapScale").textContent = `Scale: ${LAYOUT.building.display_scale || "1 unit = 1 meter"} | Orthogonal metric layout`;
+    populateControls();
+    setCanvasSize();
+    drawAll();
+  } catch (err) {
+    document.getElementById("mapScale").textContent = "Layout load failed";
+    showAlert(err.message);
+  }
+}
+
+initApp();
+</script>
+</body>
+</html>
