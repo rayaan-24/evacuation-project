@@ -216,18 +216,20 @@ def get_room_connection_waypoint(layout, room_id):
 def get_corridor_waypoints(layout, corridor_id):
     """Return corridor junction and door waypoints attached to a corridor."""
     waypoint_ids = set()
+    corridor = find_element(layout, corridor_id)
 
     for connection in layout.get("connections", {}).get("room_to_corridor", []):
         if connection.get("corridor_id") == corridor_id:
             waypoint_ids.add(connection.get("waypoint_id"))
 
-    for connection in layout.get("connections", {}).get("corridor_to_corridor", []):
-        if connection.get("from") == corridor_id or connection.get("to") == corridor_id:
-            waypoint_ids.add(connection.get("waypoint_id"))
-
     for connection in layout.get("connections", {}).get("corridor_to_vertical_egress", []):
         if connection.get("corridor_id") == corridor_id:
             waypoint_ids.add(connection.get("waypoint_id"))
+
+    if corridor and corridor.get("type") == "corridor":
+        for wp in layout.get("waypoints", []):
+            if point_in_rect(wp["x"], wp["y"], corridor):
+                waypoint_ids.add(wp["id"])
 
     return {wp_id for wp_id in waypoint_ids if wp_id}
 
@@ -236,7 +238,7 @@ def fire_sources_to_hazards(layout, fire_sources):
     """
     Convert room/corridor fire sources into blocked elements, hazard zones, and blocked waypoints.
     """
-    radius_m = layout.get("fire_safety", {}).get("hazard_radius_m", 3)
+    default_radius_m = layout.get("fire_safety", {}).get("hazard_radius_m", 3)
     blocked_elements = set()
     blocked_waypoints = set()
     hazard_zones = []
@@ -249,17 +251,19 @@ def fire_sources_to_hazards(layout, fire_sources):
         source_type = element.get("type")
         blocked_elements.add(source_id)
         center_x, center_y = element_center(element)
+        radius_m = default_radius_m if source_type == "room" else 0
 
-        hazard_zones.append({
-            "id": f"HZ_{source_id}",
-            "source_id": source_id,
-            "x": max(0, center_x - radius_m),
-            "y": max(0, center_y - radius_m),
-            "width": radius_m * 2,
-            "height": radius_m * 2,
-            "radius_m": radius_m,
-            "type": "hazard_zone",
-        })
+        if radius_m > 0:
+            hazard_zones.append({
+                "id": f"HZ_{source_id}",
+                "source_id": source_id,
+                "x": max(0, center_x - radius_m),
+                "y": max(0, center_y - radius_m),
+                "width": radius_m * 2,
+                "height": radius_m * 2,
+                "radius_m": radius_m,
+                "type": "hazard_zone",
+            })
 
         if source_type == "room":
             room_wp = get_room_connection_waypoint(layout, source_id)
@@ -269,26 +273,27 @@ def fire_sources_to_hazards(layout, fire_sources):
         if source_type == "corridor":
             blocked_waypoints.update(get_corridor_waypoints(layout, source_id))
 
-        for item in iter_all_elements(layout):
-            if item.get("id") == source_id:
-                continue
-            if item.get("type") not in {"room", "corridor"}:
-                continue
-            if source_type == "corridor" and item.get("type") == "corridor":
-                continue
-            if point_to_rect_distance(center_x, center_y, item) <= radius_m:
-                blocked_elements.add(item["id"])
-                if item.get("type") == "room":
-                    room_wp = get_room_connection_waypoint(layout, item["id"])
-                    if room_wp:
-                        blocked_waypoints.add(room_wp)
-                if item.get("type") == "corridor":
-                    blocked_waypoints.update(get_corridor_waypoints(layout, item["id"]))
+        if radius_m > 0:
+            for item in iter_all_elements(layout):
+                if item.get("id") == source_id:
+                    continue
+                if item.get("type") not in {"room", "corridor"}:
+                    continue
+                if source_type == "corridor" and item.get("type") == "corridor":
+                    continue
+                if point_to_rect_distance(center_x, center_y, item) <= radius_m:
+                    blocked_elements.add(item["id"])
+                    if item.get("type") == "room":
+                        room_wp = get_room_connection_waypoint(layout, item["id"])
+                        if room_wp:
+                            blocked_waypoints.add(room_wp)
+                    if item.get("type") == "corridor":
+                        blocked_waypoints.update(get_corridor_waypoints(layout, item["id"]))
 
-        for wp in layout.get("waypoints", []):
-            wp_dist = math.sqrt((wp["x"] - center_x) ** 2 + (wp["y"] - center_y) ** 2)
-            if wp_dist <= radius_m:
-                blocked_waypoints.add(wp["id"])
+            for wp in layout.get("waypoints", []):
+                wp_dist = math.sqrt((wp["x"] - center_x) ** 2 + (wp["y"] - center_y) ** 2)
+                if wp_dist <= radius_m:
+                    blocked_waypoints.add(wp["id"])
 
     return {
         "blocked_elements": sorted(blocked_elements),

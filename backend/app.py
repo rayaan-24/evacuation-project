@@ -41,6 +41,15 @@ def build_sensor_state():
 sensor_data = build_sensor_state()
 
 
+@app.after_request
+def disable_cache(response):
+    """Force the browser to fetch the latest HTML, JSON, and API responses."""
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
+
+
 @app.route("/")
 def home():
     """Serve the frontend demo page at the root URL."""

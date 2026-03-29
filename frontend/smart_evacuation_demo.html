@@ -327,10 +327,11 @@ function populateControls() {
     start.appendChild(option);
   });
 
-  const fireSourcesForUi = [
-    ...LAYOUT.rooms.map(room => ({id: room.id, name: room.name, kind: "Room"})),
-    ...LAYOUT.corridors.map(corridor => ({id: corridor.id, name: corridor.name, kind: "Corridor"}))
-  ];
+  const fireSourcesForUi = LAYOUT.corridors.map(corridor => ({
+    id: corridor.id,
+    name: corridor.name,
+    kind: "Corridor"
+  }));
 
   fireSourcesForUi.forEach(item => {
     const label = document.createElement("label");
