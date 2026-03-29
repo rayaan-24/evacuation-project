@@ -216,6 +216,7 @@ let pathProg = 0;
 let rafH = null;
 let activeBlockedElements = new Set();
 let activeHazardZones = [];
+let CORRIDOR_LABELS = new Map();
 
 const cvs = document.getElementById("cvs");
 const ctx = cvs.getContext("2d");
@@ -269,6 +270,10 @@ function normalizeLayout(raw) {
     sensor_map: raw.sensor_map || {},
     graph
   };
+}
+
+function shortCorridorLabel(corridor) {
+  return CORRIDOR_LABELS.get(corridor.id) || "C";
 }
 
 function roomCenter(room) {
@@ -329,14 +334,14 @@ function populateControls() {
 
   const fireSourcesForUi = LAYOUT.corridors.map(corridor => ({
     id: corridor.id,
-    name: corridor.name,
+    name: shortCorridorLabel(corridor),
     kind: "Corridor"
   }));
 
   fireSourcesForUi.forEach(item => {
     const label = document.createElement("label");
     label.className = "cbl";
-    label.innerHTML = `<input type="checkbox" value="${item.id}"> ${item.name} [${item.id}] - ${item.kind}`;
+    label.innerHTML = `<input type="checkbox" value="${item.id}"> ${item.name} - ${item.kind}`;
     fires.appendChild(label);
   });
 
@@ -349,6 +354,12 @@ function populateControls() {
     row.innerHTML = `<span class="sdot safe"></span><span>${sensorLabel(sensorId, roomId)}</span><span class="sval" style="color:var(--green)">Normal</span>`;
     sensors.appendChild(row);
   });
+}
+
+function buildCorridorLabels() {
+  CORRIDOR_LABELS = new Map(
+    LAYOUT.corridors.map((corridor, index) => [corridor.id, `C${index + 1}`])
+  );
 }
 
 async function fetchJson(path) {
@@ -383,6 +394,7 @@ function drawAll() {
   ctx.fillStyle = "#c8c8c8";
   ctx.fillRect(0, 0, cvs.width, cvs.height);
   drawGrid();
+  drawWaypoints();
   drawCorridors();
   drawRooms();
   drawDoors();
@@ -390,7 +402,6 @@ function drawAll() {
   drawLifts();
   drawExits();
   drawHazards();
-  drawWaypoints();
   drawRuler();
   for (const sourceId of fireSources) drawFireSource(sourceId);
   if (currentPath.length > 1) drawPath();
@@ -422,6 +433,8 @@ function drawCorridors() {
     const y = pxY(c.y);
     const w = pxSize(c.w);
     const h = pxSize(c.h);
+    const label = shortCorridorLabel(c);
+    const fontSize = Math.max(7, Math.min(h * 0.48, 11));
     ctx.fillStyle = isBlocked ? "#6b7280" : "#f0f0f0";
     ctx.fillRect(x, y, w, h);
     ctx.strokeStyle = isBlocked ? "#111827" : "#ccc";
@@ -429,10 +442,11 @@ function drawCorridors() {
     ctx.setLineDash([4, 4]);
     ctx.strokeRect(x, y, w, h);
     ctx.setLineDash([]);
-    ctx.fillStyle = isBlocked ? "#fca5a5" : "#aaa";
-    ctx.font = "bold 11px var(--mono)";
+    ctx.fillStyle = "#000";
+    ctx.font = `bold ${fontSize}px var(--mono)`;
     ctx.textAlign = "center";
-    ctx.fillText((c.name || c.id || "CORRIDOR").toUpperCase(), x + w / 2, y + h / 2 + 4);
+    ctx.textBaseline = "middle";
+    ctx.fillText(label, x + w / 2, y + h / 2);
   }
 }
 
@@ -571,8 +585,8 @@ function drawHazards() {
 function drawWaypoints() {
   Object.values(LAYOUT.graph).forEach(node => {
     ctx.beginPath();
-    ctx.arc(pxX(node.x), pxY(node.y), 3, 0, Math.PI * 2);
-    ctx.fillStyle = "#3b8fdb";
+    ctx.arc(pxX(node.x), pxY(node.y), 2, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(59, 143, 219, 0.45)";
     ctx.fill();
   });
 }
@@ -819,6 +833,7 @@ async function initApp() {
     const raw = await fetchLayout();
     LAYOUT = normalizeLayout(raw);
     ROOM_LOOKUP = Object.fromEntries(LAYOUT.rooms.map(room => [room.id, room]));
+    buildCorridorLabels();
     document.getElementById("mapTitle").textContent = LAYOUT.building.name || "Building Layout";
     document.getElementById("mapScale").textContent = `Scale: ${LAYOUT.building.display_scale || "1 unit = 1 meter"} | Orthogonal metric layout`;
     populateControls();
