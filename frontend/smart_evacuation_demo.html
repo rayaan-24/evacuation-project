@@ -700,11 +700,16 @@ function showDirs(dirs) {
   let h = `<div style="padding:4px 0 8px;font-size:.65rem;color:var(--dim);font-family:var(--mono);letter-spacing:1px">DIRECTIONS (${dirs.length} STEPS)</div>`;
   dirs.forEach(d => {
     const isExit = String(d.to || "").startsWith("E") || String(d.instruction || "").includes("EVACUATE");
+    const shortInstruction = String(d.instruction || d.text || "")
+      .replace(/\s*->\s*/g, " ")
+      .replace(/\bDoor\s+[A-Z0-9]+\b/g, "")
+      .replace(/\bJunction\b/g, "")
+      .replace(/\s+/g, " ")
+      .trim();
     h += `<div class="step ${isExit ? "ex" : ""}">
       <div class="snum">${d.step}</div>
       <div>
-        <div class="stxt">${d.instruction || d.text}</div>
-        <div class="sdst">from ${d.from} to ${d.to} | ${d.distance_m ?? d.dist}m</div>
+        <div class="stxt">${shortInstruction}</div>
       </div>
     </div>`;
   });

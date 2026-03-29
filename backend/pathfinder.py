@@ -478,9 +478,13 @@ def find_nearest_exit(layout, graph, start_wp, danger_nodes):
             evaporation=0.5,
             Q=100,
         )
-        path, dist = aco.find_path(start_wp, exit_id, danger_nodes)
-        if not path:
-            path, dist = shortest_safe_path(graph, start_wp, exit_id, danger_nodes)
+        aco_path, aco_dist = aco.find_path(start_wp, exit_id, danger_nodes)
+        dijkstra_path, dijkstra_dist = shortest_safe_path(graph, start_wp, exit_id, danger_nodes)
+
+        if dijkstra_path and (not aco_path or dijkstra_dist <= aco_dist):
+            path, dist = dijkstra_path, dijkstra_dist
+        else:
+            path, dist = aco_path, aco_dist
 
         if path and dist < best_dist:
             best_dist = dist
@@ -565,6 +569,28 @@ def generate_directions(path, layout):
     return directions
 
 
+def simplify_path_nodes(path, graph, layout):
+    """Remove unnecessary intermediate waypoints when a direct safe edge already exists."""
+    simplified = list(path)
+    changed = True
+
+    while changed and len(simplified) >= 3:
+        changed = False
+        for index in range(1, len(simplified) - 1):
+            node_id = simplified[index]
+            if str(node_id).startswith("E"):
+                continue
+
+            prev_id = simplified[index - 1]
+            next_id = simplified[index + 1]
+            if any(neighbor_id == next_id for neighbor_id, _ in graph.get(prev_id, [])):
+                simplified.pop(index)
+                changed = True
+                break
+
+    return simplified
+
+
 def run_pathfinder(start_room, fire_rooms, layout_path="data/building_layout.json"):
     """
     Main function called by the Flask API.
@@ -614,6 +640,7 @@ def run_pathfinder(start_room, fire_rooms, layout_path="data/building_layout.jso
             "hazard_zones": hazard_info["hazard_zones"],
             }
 
+    best_path = simplify_path_nodes(best_path, safe_graph, layout)
     directions = generate_directions(best_path, layout)
 
     path_coords = build_display_path(
