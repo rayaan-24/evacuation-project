@@ -82,11 +82,11 @@
     { "id": "S3", "name": "South Stair", "x": 56.0, "y": 88.0, "width": 8.0, "height": 4.0 }
   ],
   "lifts": [
-    { "id": "L1", "name": "Central Lift", "x": 66.0, "y": 10.0, "width": 4.0, "height": 6.0 }
+    { "id": "L1", "name": "Central Lift", "x": 54.0, "y": 39.0, "width": 4.0, "height": 6.0 }
   ],
   "exits": [
-    { "id": "E1", "name": "North West Exit", "x": 21.0, "y": 6.0, "width": 4.0, "height": 2.0 },
-    { "id": "E2", "name": "North East Exit", "x": 93.0, "y": 6.0, "width": 4.0, "height": 2.0 },
+    { "id": "E1", "name": "North West Exit", "x": 18.0, "y": 10.0, "width": 4.0, "height": 2.0 },
+    { "id": "E2", "name": "North East Exit", "x": 96.0, "y": 10.0, "width": 4.0, "height": 2.0 },
     { "id": "E3", "name": "East Side Exit", "x": 108.0, "y": 57.0, "width": 2.0, "height": 4.0 },
     { "id": "E4", "name": "South Exit", "x": 58.0, "y": 92.0, "width": 4.0, "height": 2.0 }
   ],
