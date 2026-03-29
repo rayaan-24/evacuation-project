@@ -58,11 +58,80 @@ def point_to_rect_distance(px, py, rect):
     return math.sqrt(dx * dx + dy * dy)
 
 
+def point_in_rect(px, py, rect):
+    """Return True when a point lies inside or on the boundary of a rectangle."""
+    return (
+        rect["x"] <= px <= rect["x"] + rect.get("width", 0)
+        and rect["y"] <= py <= rect["y"] + rect.get("height", 0)
+    )
+
+
+def _orientation(ax, ay, bx, by, cx, cy):
+    value = (by - ay) * (cx - bx) - (bx - ax) * (cy - by)
+    if abs(value) < 1e-9:
+        return 0
+    return 1 if value > 0 else 2
+
+
+def _on_segment(ax, ay, bx, by, cx, cy):
+    return min(ax, cx) <= bx <= max(ax, cx) and min(ay, cy) <= by <= max(ay, cy)
+
+
+def segments_intersect(ax, ay, bx, by, cx, cy, dx, dy):
+    """Return True if two line segments intersect."""
+    o1 = _orientation(ax, ay, bx, by, cx, cy)
+    o2 = _orientation(ax, ay, bx, by, dx, dy)
+    o3 = _orientation(cx, cy, dx, dy, ax, ay)
+    o4 = _orientation(cx, cy, dx, dy, bx, by)
+
+    if o1 != o2 and o3 != o4:
+        return True
+    if o1 == 0 and _on_segment(ax, ay, cx, cy, bx, by):
+        return True
+    if o2 == 0 and _on_segment(ax, ay, dx, dy, bx, by):
+        return True
+    if o3 == 0 and _on_segment(cx, cy, ax, ay, dx, dy):
+        return True
+    if o4 == 0 and _on_segment(cx, cy, bx, by, dx, dy):
+        return True
+    return False
+
+
+def segment_intersects_rect(ax, ay, bx, by, rect):
+    """Return True if a line segment intersects or runs through a rectangle."""
+    x1 = rect["x"]
+    y1 = rect["y"]
+    x2 = rect["x"] + rect.get("width", 0)
+    y2 = rect["y"] + rect.get("height", 0)
+
+    if point_in_rect(ax, ay, rect) or point_in_rect(bx, by, rect):
+        return True
+
+    return any(
+        segments_intersect(ax, ay, bx, by, sx1, sy1, sx2, sy2)
+        for sx1, sy1, sx2, sy2 in (
+            (x1, y1, x2, y1),
+            (x2, y1, x2, y2),
+            (x2, y2, x1, y2),
+            (x1, y2, x1, y1),
+        )
+    )
+
+
 def build_graph(layout):
     """
     Convert the JSON layout into an adjacency list for ACO.
     """
     graph = {}
+
+    def add_edge(node_a, node_b, dist):
+        neighbors_a = graph.setdefault(node_a, [])
+        neighbors_b = graph.setdefault(node_b, [])
+
+        if not any(existing_id == node_b for existing_id, _ in neighbors_a):
+            neighbors_a.append((node_b, dist))
+        if not any(existing_id == node_a for existing_id, _ in neighbors_b):
+            neighbors_b.append((node_a, dist))
 
     for wp in layout["waypoints"]:
         graph[wp["id"]] = []
@@ -70,10 +139,44 @@ def build_graph(layout):
         graph[ex["id"]] = []
 
     for node_a, node_b, dist in layout["graph_edges"]:
-        graph.setdefault(node_a, []).append((node_b, dist))
-        graph.setdefault(node_b, []).append((node_a, dist))
+        add_edge(node_a, node_b, dist)
 
     meters_per_unit = layout.get("building", {}).get("meters_per_unit", 1.0)
+    room_waypoint_ids = {
+        connection.get("waypoint_id")
+        for connection in layout.get("connections", {}).get("room_to_corridor", [])
+        if connection.get("waypoint_id")
+    }
+
+    corridor_lookup = {
+        corridor["id"]: corridor
+        for corridor in layout.get("corridors", [])
+    }
+
+    # Attach each room door waypoint to the actual walkable points inside its corridor segment.
+    # This prevents a room from becoming artificially trapped when one adjacent connector is blocked.
+    for connection in layout.get("connections", {}).get("room_to_corridor", []):
+        room_wp = connection.get("waypoint_id")
+        corridor = corridor_lookup.get(connection.get("corridor_id"))
+        if not room_wp or not corridor or room_wp not in graph:
+            continue
+
+        room_x, room_y = get_waypoint_coords(layout, room_wp)
+        if room_x is None:
+            continue
+
+        for wp in layout.get("waypoints", []):
+            target_id = wp["id"]
+            if target_id == room_wp or target_id in room_waypoint_ids:
+                continue
+            if not point_in_rect(wp["x"], wp["y"], corridor):
+                continue
+
+            dist_m = round(
+                math.sqrt((wp["x"] - room_x) ** 2 + (wp["y"] - room_y) ** 2) * meters_per_unit,
+                1,
+            )
+            add_edge(room_wp, target_id, dist_m)
 
     # Connect exits to the nearest waypoint when the JSON omits the final link.
     for ex in layout["exits"]:
@@ -96,8 +199,7 @@ def build_graph(layout):
 
         if nearest_wp:
             dist_m = round(nearest_dist_px * meters_per_unit, 1)
-            graph[exit_id].append((nearest_wp, dist_m))
-            graph.setdefault(nearest_wp, []).append((exit_id, dist_m))
+            add_edge(exit_id, nearest_wp, dist_m)
 
     return graph
 
@@ -193,6 +295,113 @@ def fire_sources_to_hazards(layout, fire_sources):
         "blocked_waypoints": blocked_waypoints,
         "hazard_zones": hazard_zones,
     }
+
+
+def build_safe_graph(layout, graph, blocked_elements, danger_nodes, hazard_zones):
+    """
+    Remove nodes and edges that enter blocked corridors/rooms or cross hazard zones.
+    """
+    blocked_rects = []
+    for element_id in blocked_elements:
+        element = find_element(layout, element_id)
+        if element and element.get("type") in {"room", "corridor"}:
+            blocked_rects.append(element)
+    blocked_rects.extend(hazard_zones)
+
+    safe_graph = {node_id: [] for node_id in graph if node_id not in danger_nodes}
+
+    for node_id, neighbors in graph.items():
+        if node_id in danger_nodes:
+            continue
+
+        ax, ay = get_waypoint_coords(layout, node_id)
+        for neighbor_id, dist in neighbors:
+            if neighbor_id in danger_nodes or neighbor_id not in safe_graph:
+                continue
+
+            bx, by = get_waypoint_coords(layout, neighbor_id)
+            if ax is None or bx is None:
+                continue
+
+            blocked = False
+            for rect in blocked_rects:
+                if segment_intersects_rect(ax, ay, bx, by, rect):
+                    blocked = True
+                    break
+
+            if not blocked:
+                safe_graph[node_id].append((neighbor_id, dist))
+
+    return safe_graph
+
+
+def get_blocked_rects(layout, blocked_elements, hazard_zones):
+    """Return blocked room/corridor rectangles plus hazard rectangles."""
+    blocked_rects = []
+    for element_id in blocked_elements:
+        element = find_element(layout, element_id)
+        if element and element.get("type") in {"room", "corridor"}:
+            blocked_rects.append(element)
+    blocked_rects.extend(hazard_zones)
+    return blocked_rects
+
+
+def orthogonal_edge_points(ax, ay, bx, by, blocked_rects):
+    """
+    Expand a segment into axis-aligned points for display so the drawn path follows corridors.
+    """
+    if ax == bx or ay == by:
+        return [(ax, ay), (bx, by)]
+
+    candidates = [
+        [(ax, ay), (ax, by), (bx, by)],
+        [(ax, ay), (bx, ay), (bx, by)],
+    ]
+
+    def segment_blocked(points):
+        for i in range(len(points) - 1):
+            sx, sy = points[i]
+            ex, ey = points[i + 1]
+            for rect in blocked_rects:
+                if segment_intersects_rect(sx, sy, ex, ey, rect):
+                    return True
+        return False
+
+    for points in candidates:
+        if not segment_blocked(points):
+            return points
+
+    return [(ax, ay), (bx, by)]
+
+
+def build_display_path(layout, path_nodes, blocked_elements, hazard_zones):
+    """Build display coordinates with orthogonal bends to avoid visual shortcuts through blocks."""
+    blocked_rects = get_blocked_rects(layout, blocked_elements, hazard_zones)
+    coords = []
+
+    for index, node_id in enumerate(path_nodes):
+        ax, ay = get_waypoint_coords(layout, node_id)
+        if ax is None:
+            continue
+
+        if index == 0:
+            coords.append({"id": node_id, "x": ax, "y": ay})
+            continue
+
+        prev_id = path_nodes[index - 1]
+        px, py = get_waypoint_coords(layout, prev_id)
+        if px is None:
+            coords.append({"id": node_id, "x": ax, "y": ay})
+            continue
+
+        polyline = orthogonal_edge_points(px, py, ax, ay, blocked_rects)
+        for bend_index, (x, y) in enumerate(polyline[1:], start=1):
+            point_id = node_id if bend_index == len(polyline) - 1 else f"{prev_id}_{node_id}_B{bend_index}"
+            if coords and coords[-1]["x"] == x and coords[-1]["y"] == y:
+                continue
+            coords.append({"id": point_id, "x": x, "y": y})
+
+    return coords
 
 
 def get_waypoint_coords(layout, node_id):
@@ -364,6 +573,13 @@ def run_pathfinder(start_room, fire_rooms, layout_path="data/building_layout.jso
 
     hazard_info = fire_sources_to_hazards(layout, fire_rooms)
     danger_nodes = set(hazard_info["blocked_waypoints"])
+    safe_graph = build_safe_graph(
+        layout,
+        graph,
+        hazard_info["blocked_elements"],
+        danger_nodes,
+        hazard_info["hazard_zones"],
+    )
 
     print(f"\n{'=' * 50}")
     print(f"PATHFINDER: {start_room} -> Nearest Exit")
@@ -381,7 +597,7 @@ def run_pathfinder(start_room, fire_rooms, layout_path="data/building_layout.jso
             "hazard_zones": hazard_info["hazard_zones"],
         }
 
-    best_path, best_dist, best_exit = find_nearest_exit(layout, graph, start_wp, danger_nodes)
+    best_path, best_dist, best_exit = find_nearest_exit(layout, safe_graph, start_wp, danger_nodes)
 
     if not best_path:
         return {
@@ -395,11 +611,12 @@ def run_pathfinder(start_room, fire_rooms, layout_path="data/building_layout.jso
 
     directions = generate_directions(best_path, layout)
 
-    path_coords = []
-    for node_id in best_path:
-        x, y = get_waypoint_coords(layout, node_id)
-        if x is not None:
-            path_coords.append({"id": node_id, "x": x, "y": y})
+    path_coords = build_display_path(
+        layout,
+        best_path,
+        hazard_info["blocked_elements"],
+        hazard_info["hazard_zones"],
+    )
 
     return {
         "success": True,

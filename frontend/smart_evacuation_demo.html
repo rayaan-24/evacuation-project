@@ -83,6 +83,37 @@ select:focus{outline:none;border-color:var(--accent)}
 ::-webkit-scrollbar{width:3px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+@media (max-width: 1180px){
+  .main{grid-template-columns:220px 1fr 240px}
+  .hdr{padding:10px 14px}
+  .ttl{font-size:1.2rem}
+}
+@media (max-width: 960px){
+  body{height:auto;min-height:100vh;overflow:auto}
+  .hdr{flex-direction:column;align-items:flex-start;gap:10px}
+  .main{display:flex;flex-direction:column;min-height:auto}
+  .lpanel,.rpanel,.mapsec{border:none}
+  .lpanel,.rpanel{padding:12px}
+  .mapsec{min-height:55vh}
+  .cwrap{justify-content:flex-start;padding:10px;overflow:auto}
+  #cvs{min-width:720px}
+  .stats{grid-template-columns:repeat(3, minmax(0,1fr))}
+}
+@media (max-width: 640px){
+  .hdr{padding:10px 12px}
+  .hdr-l{gap:10px}
+  .ttl{font-size:1rem;letter-spacing:1px}
+  .sub,.badge,.mapscale{font-size:.6rem}
+  .logo{font-size:1.4rem}
+  .lpanel,.rpanel{gap:10px}
+  .ptitle{font-size:.68rem}
+  .runbtn{padding:10px;font-size:.74rem}
+  .clrbtn{font-size:.68rem}
+  .stats{grid-template-columns:1fr}
+  .maphdr{padding:8px 10px;align-items:flex-start;flex-direction:column}
+  .cwrap{padding:8px}
+  #cvs{min-width:640px}
+}
 </style>
 </head>
 <body>
@@ -636,6 +667,15 @@ function showAlert(msg) {
   el.textContent = msg;
 }
 
+function clearRenderedPath() {
+  currentPath = [];
+  pathProg = 0;
+  if (rafH) {
+    cancelAnimationFrame(rafH);
+    rafH = null;
+  }
+}
+
 function showDirs(dirs) {
   if (!dirs.length) {
     document.getElementById("dirs").innerHTML = '<div class="dph"><div class="ic">X</div><p>No safe path found</p></div>';
@@ -731,9 +771,9 @@ async function runEvac() {
       throw lastError || new Error("Could not reach the backend pathfinder.");
     }
 
-    animatePath(result.path_coords || []);
     activeBlockedElements = new Set(result.blocked_elements || fires);
     activeHazardZones = result.hazard_zones || [];
+    animatePath(result.path_coords || []);
     document.getElementById("stats").style.display = "grid";
     document.getElementById("sDist").textContent = `${Number(result.total_distance_m || 0).toFixed(1)}m`;
     document.getElementById("sSteps").textContent = result.total_steps ?? (result.directions || []).length;
@@ -741,9 +781,13 @@ async function runEvac() {
     showAlert(`${String(emergencyType).toUpperCase()} emergency | Evacuate via ${result.best_exit} | ${Number(result.total_distance_m || 0).toFixed(1)}m total`);
     showDirs(result.directions || []);
   } catch (err) {
+    clearRenderedPath();
     activeBlockedElements = new Set(err.result?.blocked_elements || fires);
     activeHazardZones = err.result?.hazard_zones || [];
+    document.getElementById("stats").style.display = "none";
+    showDirs([]);
     showAlert(`Pathfinding failed: ${err.message}`);
+    drawAll();
   } finally {
     document.getElementById("ov").classList.remove("on");
     document.getElementById("runBtn").disabled = false;
@@ -752,11 +796,9 @@ async function runEvac() {
 
 function resetAll() {
   fireSources = [];
-  currentPath = [];
-  pathProg = 0;
+  clearRenderedPath();
   activeBlockedElements = new Set();
   activeHazardZones = [];
-  if (rafH) cancelAnimationFrame(rafH);
   document.getElementById("startRoom").value = "";
   document.getElementById("emerType").value = "fire";
   document.querySelectorAll("#fireCBs input").forEach(c => c.checked = false);

@@ -44,7 +44,7 @@ sensor_data = build_sensor_state()
 @app.route("/")
 def home():
     """Serve the frontend demo page at the root URL."""
-    return send_from_directory(PROJECT_ROOT, "smart_evacuation_demo.html")
+    return send_from_directory(PROJECT_ROOT, "frontend/smart_evacuation_demo.html")
 
 
 @app.route("/api")
