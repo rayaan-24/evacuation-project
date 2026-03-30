@@ -14,6 +14,13 @@
     "blocked_element_types": ["room", "corridor"],
     "blocked_node_rule": "Any routing waypoint within 3 meters of a fire source is unsafe"
   },
+  "emergency_rules": {
+    "FIRE": { "block": true, "radius": 2 },
+    "SMOKE": { "block": false, "weight": 5 },
+    "BLOCKAGE": { "block": true },
+    "CROWD": { "block": false, "weight": 3 },
+    "GAS": { "block": true, "radius": 3 }
+  },
   "rooms": [
     { "id": "G01", "name": "Classroom G01", "department": "SITE", "x": 18.0, "y": 70.0, "width": 8.0, "height": 10.56, "area_sqft": 910, "area_sqm": 84.4960052, "capacity": 48 },
     { "id": "G02", "name": "Classroom G02", "department": "SITE", "x": 26.5, "y": 70.0, "width": 10.0, "height": 10.05, "area_sqft": 1052, "area_sqm": 100.5, "capacity": 56 },
@@ -305,9 +312,35 @@
     ["WP_MISC", "J_SE", 9.0]
   ],
   "sensor_map": {
-    "sensor_1": "G01",
-    "sensor_2": "G17",
-    "sensor_3": "G20",
-    "sensor_4": "G13"
+    "sensor_0": "C1A",
+    "sensor_1": "C1B",
+    "sensor_2": "C1C",
+    "sensor_3": "C1D",
+    "sensor_4": "C2A",
+    "sensor_5": "C2B",
+    "sensor_6": "C2C",
+    "sensor_7": "C2D",
+    "sensor_8": "C3A",
+    "sensor_9": "C3B",
+    "sensor_10": "C3C",
+    "sensor_11": "C3D",
+    "sensor_12": "C4A",
+    "sensor_13": "C4B",
+    "sensor_14": "C5A",
+    "sensor_15": "C5B",
+    "sensor_16": "C6A",
+    "sensor_17": "C6B",
+    "sensor_18": "CJ_NW",
+    "sensor_19": "CJ_NC",
+    "sensor_20": "CJ_NE",
+    "sensor_21": "CJ_MW",
+    "sensor_22": "CJ_MC",
+    "sensor_23": "CJ_ME",
+    "sensor_24": "CJ_SW",
+    "sensor_25": "CJ_SC",
+    "sensor_26": "CJ_SE",
+    "sensor_27": "C7A",
+    "sensor_28": "C7B",
+    "sensor_29": "C7C"
   }
 }

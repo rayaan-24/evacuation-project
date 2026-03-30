@@ -3,116 +3,409 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Smart Evacuation ACO</title>
+<title>Smart Evacuation ACO - Enhanced</title>
 <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Exo+2:wght@300;400;600;700;900&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg: #0d0f14; --panel: #13161e; --card: #1a1d27; --input: #0f1117;
-  --border: #2a2d3a; --text: #e8eaf0; --muted: #8b90a0; --dim: #555a6e;
-  --accent: #ff6b2b; --green: #22c55e; --blue: #3b8fdb;
-  --fire: #ff4444; --purple: #a78bfa; --yellow: #fbbf24;
-  --mono: 'Share Tech Mono', monospace; --body: 'Exo 2', sans-serif;
+  --bg: #0d0f14;
+  --panel: #13161e;
+  --card: #1a1d27;
+  --input: #0f1117;
+  --border: #2a2d3a;
+  --text: #e8eaf0;
+  --muted: #8b90a0;
+  --dim: #555a6e;
+  --accent: #ff6b2b;
+  --green: #22c55e;
+  --blue: #3b8fdb;
+  --fire: #ff4444;
+  --purple: #a78bfa;
+  --yellow: #fbbf24;
+  --smoke: #f97316;
+  --gas: #a855f7;
+  --blockage: #3b82f6;
+  --crowd: #fbbf24;
+  --mono: 'Share Tech Mono', monospace;
+  --body: 'Exo 2', sans-serif;
 }
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:var(--body);background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direction:column;overflow:hidden}
-.hdr{display:flex;justify-content:space-between;align-items:center;padding:10px 20px;background:var(--panel);border-bottom:2px solid var(--accent);flex-shrink:0}
-.hdr-l{display:flex;align-items:center;gap:12px}
-.logo{font-size:1.8rem;animation:pop 2s ease-in-out infinite}
-@keyframes pop{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
-.ttl{font-size:1.4rem;font-weight:900;letter-spacing:2px;text-transform:uppercase}
-.ttl span{color:var(--accent)}
-.sub{font-size:0.65rem;color:var(--muted);font-family:var(--mono);letter-spacing:1px;text-transform:uppercase}
-.badge{display:flex;align-items:center;gap:6px;padding:5px 12px;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.4);border-radius:20px;font-size:0.68rem;font-family:var(--mono);color:var(--green)}
-.dot{width:7px;height:7px;background:var(--green);border-radius:50%;animation:blink 1.5s infinite}
-@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
-.main{display:grid;grid-template-columns:240px 1fr 260px;flex:1;min-height:0}
-.lpanel{background:var(--panel);border-right:1px solid var(--border);padding:14px 12px;overflow-y:auto;display:flex;flex-direction:column;gap:12px}
-.ptitle{font-size:0.72rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--accent);padding-bottom:8px;border-bottom:1px solid var(--border);font-family:var(--mono)}
-.cg{display:flex;flex-direction:column;gap:6px}
-.cl{font-size:0.65rem;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--muted);font-family:var(--mono)}
-select{background:var(--input);border:1px solid var(--border);color:var(--text);padding:7px 10px;border-radius:6px;font-size:0.8rem;width:100%;cursor:pointer;font-family:var(--body)}
-select:focus{outline:none;border-color:var(--accent)}
-.cblist{display:flex;flex-direction:column;gap:4px;max-height:180px;overflow-y:auto}
-.cbl{display:flex;align-items:center;gap:7px;font-size:0.76rem;cursor:pointer;padding:3px 5px;border-radius:4px}
-.cbl:hover{background:var(--card)}
-.cbl input{accent-color:var(--fire);width:13px;height:13px}
-.runbtn{background:linear-gradient(135deg,var(--accent),#cc4a10);color:#fff;border:none;padding:11px;border-radius:8px;font-size:0.8rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;font-family:var(--mono);transition:all .2s;display:flex;align-items:center;justify-content:center;gap:6px}
-.runbtn:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(255,107,43,.4)}
-.runbtn:disabled{opacity:.5;cursor:not-allowed;transform:none}
-.clrbtn{background:transparent;border:1px solid var(--border);color:var(--muted);padding:7px;border-radius:6px;font-size:0.72rem;cursor:pointer;font-family:var(--mono);letter-spacing:1px;transition:all .2s;width:100%}
-.clrbtn:hover{border-color:var(--muted);color:var(--text)}
-.lgd{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px}
-.lgd-t{font-size:0.65rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);font-family:var(--mono);margin-bottom:8px}
-.li{display:flex;align-items:center;gap:8px;font-size:0.72rem;color:var(--muted);padding:2px 0}
-.lc{width:16px;height:10px;border-radius:2px;flex-shrink:0}
-.mapsec{background:#0a0c10;display:flex;flex-direction:column;overflow:hidden}
-.maphdr{display:flex;justify-content:space-between;align-items:center;padding:8px 14px;background:var(--panel);border-bottom:1px solid var(--border);flex-shrink:0;gap:16px}
-.maptitle{font-size:0.78rem;font-weight:700;font-family:var(--mono);letter-spacing:1px}
-.mapscale{font-size:0.65rem;color:var(--dim);font-family:var(--mono);text-align:right}
-.cwrap{flex:1;display:flex;align-items:center;justify-content:center;padding:12px;position:relative;overflow:auto}
-#cvs{border:1px solid var(--border);border-radius:8px;box-shadow:0 0 30px rgba(255,107,43,.05);display:block;max-width:100%;height:auto}
-.overlay{display:none;position:absolute;inset:0;background:rgba(10,12,16,.85);align-items:center;justify-content:center;flex-direction:column;gap:10px;border-radius:8px;backdrop-filter:blur(4px)}
-.overlay.on{display:flex}
-.spin{width:44px;height:44px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
-.rpanel{background:var(--panel);border-left:1px solid var(--border);padding:14px 12px;overflow-y:auto;display:flex;flex-direction:column;gap:12px}
-.stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
-.sc{background:var(--card);border:1px solid var(--border);border-radius:6px;padding:8px 4px;text-align:center}
-.sv{font-size:1.1rem;font-weight:700;color:var(--green);font-family:var(--mono)}
-.sk{font-size:0.58rem;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-top:2px}
-.alert{background:rgba(255,68,68,.1);border:1px solid rgba(255,68,68,.4);border-radius:6px;padding:9px 11px;font-size:0.75rem;color:#ff8080;font-family:var(--mono);animation:fborder 1.5s infinite;display:none}
-@keyframes fborder{0%,100%{border-color:rgba(255,68,68,.4)}50%{border-color:rgba(255,68,68,1)}}
-.dircont{flex:1;overflow-y:auto}
-.dph{display:flex;flex-direction:column;align-items:center;justify-content:center;height:180px;text-align:center;color:var(--dim);gap:6px;font-size:0.78rem}
-.dph .ic{font-size:2.2rem;margin-bottom:6px}
-.step{display:flex;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);animation:slin .3s ease}
-@keyframes slin{from{transform:translateX(16px);opacity:0}to{transform:translateX(0);opacity:1}}
-.snum{width:22px;height:22px;background:var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.62rem;font-weight:700;flex-shrink:0;font-family:var(--mono)}
-.stxt{font-size:0.76rem;color:var(--text);line-height:1.5}
-.sdst{font-size:0.62rem;color:var(--dim);font-family:var(--mono);margin-top:2px}
-.step.ex .snum{background:var(--green)}
-.step.ex .stxt{color:var(--green);font-weight:600}
-.iotpanel{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px}
-.iott{font-size:0.65rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--blue);font-family:var(--mono);margin-bottom:8px}
-.srow{display:flex;align-items:center;gap:7px;padding:5px 0;font-size:0.72rem;color:var(--muted);border-bottom:1px solid var(--border)}
-.srow:last-child{border:none}
-.sdot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
-.sdot.safe{background:var(--green)}
-.sdot.fire{background:var(--fire);animation:blink .8s infinite}
-.sval{margin-left:auto;font-family:var(--mono);font-size:0.65rem}
-::-webkit-scrollbar{width:3px}
-::-webkit-scrollbar-track{background:transparent}
-::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
-@media (max-width: 1180px){
-  .main{grid-template-columns:220px 1fr 240px}
-  .hdr{padding:10px 14px}
-  .ttl{font-size:1.2rem}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--body);
+  background: var(--bg);
+  color: var(--text);
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
-@media (max-width: 960px){
-  body{height:auto;min-height:100vh;overflow:auto}
-  .hdr{flex-direction:column;align-items:flex-start;gap:10px}
-  .main{display:flex;flex-direction:column;min-height:auto}
-  .lpanel,.rpanel,.mapsec{border:none}
-  .lpanel,.rpanel{padding:12px}
-  .mapsec{min-height:55vh}
-  .cwrap{justify-content:flex-start;padding:10px;overflow:auto}
-  #cvs{min-width:720px}
-  .stats{grid-template-columns:repeat(3, minmax(0,1fr))}
+
+.hdr {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 20px;
+  background: var(--panel);
+  border-bottom: 2px solid var(--accent);
+  flex-shrink: 0;
+  z-index: 100;
 }
-@media (max-width: 640px){
-  .hdr{padding:10px 12px}
-  .hdr-l{gap:10px}
-  .ttl{font-size:1rem;letter-spacing:1px}
-  .sub,.badge,.mapscale{font-size:.6rem}
-  .logo{font-size:1.4rem}
-  .lpanel,.rpanel{gap:10px}
-  .ptitle{font-size:.68rem}
-  .runbtn{padding:10px;font-size:.74rem}
-  .clrbtn{font-size:.68rem}
-  .stats{grid-template-columns:1fr}
-  .maphdr{padding:8px 10px;align-items:flex-start;flex-direction:column}
-  .cwrap{padding:8px}
-  #cvs{min-width:640px}
+
+.hdr-l { display: flex; align-items: center; gap: 12px; }
+
+.logo {
+  font-size: 1.8rem;
+  animation: logoPulse 2s ease-in-out infinite;
+  cursor: pointer;
+}
+
+@keyframes logoPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+.ttl { font-size: 1.4rem; font-weight: 900; letter-spacing: 2px; text-transform: uppercase; }
+.ttl span { color: var(--accent); }
+.sub { font-size: 0.65rem; color: var(--muted); font-family: var(--mono); letter-spacing: 1px; }
+
+.badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  background: rgba(34,197,94,.1);
+  border: 1px solid rgba(34,197,94,.4);
+  border-radius: 20px;
+  font-size: 0.68rem;
+  font-family: var(--mono);
+  color: var(--green);
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.badge:hover { background: rgba(34,197,94,.2); }
+
+.badge.alert-active {
+  background: rgba(255,68,68,.2);
+  border-color: rgba(255,68,68,.6);
+  color: var(--fire);
+  animation: alertPulse 1s infinite;
+}
+
+@keyframes alertPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255,68,68,0.4); }
+  50% { box-shadow: 0 0 0 8px rgba(255,68,68,0); }
+}
+
+.dot { width: 7px; height: 7px; background: var(--green); border-radius: 50%; animation: blink 1.5s infinite; }
+.badge.alert-active .dot { background: var(--fire); animation: blink 0.5s infinite; }
+
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.2; } }
+
+.main {
+  display: grid;
+  grid-template-columns: 260px 1fr 280px;
+  flex: 1;
+  min-height: 0;
+}
+
+.lpanel {
+  background: var(--panel);
+  border-right: 1px solid var(--border);
+  padding: 14px 12px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ptitle {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--accent);
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+  font-family: var(--mono);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ptitle::before { content: '>'; color: var(--accent); }
+
+.cg { display: flex; flex-direction: column; gap: 6px; }
+.cl { font-size: 0.65rem; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); font-family: var(--mono); }
+
+select {
+  background: var(--input);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 8px 10px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  width: 100%;
+  cursor: pointer;
+  font-family: var(--body);
+  transition: border-color 0.2s;
+}
+
+select:focus { outline: none; border-color: var(--accent); }
+
+.cblist { display: flex; flex-direction: column; gap: 4px; max-height: 180px; overflow-y: auto; }
+
+.cbl {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.76rem;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.cbl:hover { background: var(--card); }
+.cbl input { accent-color: var(--fire); width: 13px; height: 13px; }
+
+.runbtn {
+  background: linear-gradient(135deg, var(--accent), #cc4a10);
+  color: #fff;
+  border: none;
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  cursor: pointer;
+  font-family: var(--mono);
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 4px 12px rgba(255,107,43,.3);
+}
+
+.runbtn:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(255,107,43,.4); }
+.runbtn:active { transform: translateY(0); }
+.runbtn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+.clrbtn {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  padding: 8px;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  cursor: pointer;
+  font-family: var(--mono);
+  letter-spacing: 1px;
+  transition: all 0.2s;
+  width: 100%;
+}
+
+.clrbtn:hover { border-color: var(--muted); color: var(--text); }
+
+.lgd { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 10px; }
+.lgd-t { font-size: 0.65rem; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); font-family: var(--mono); margin-bottom: 8px; }
+
+.li { display: flex; align-items: center; gap: 8px; font-size: 0.72rem; color: var(--muted); padding: 2px 0; }
+.lc { width: 16px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+
+.mapsec { background: #0a0c10; display: flex; flex-direction: column; overflow: hidden; }
+
+.maphdr {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 14px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  gap: 16px;
+}
+
+.maptitle { font-size: 0.78rem; font-weight: 700; font-family: var(--mono); letter-spacing: 1px; }
+.mapscale { font-size: 0.65rem; color: var(--dim); font-family: var(--mono); text-align: right; }
+
+.cwrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  position: relative;
+  overflow: auto;
+}
+
+#cvs {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 0 30px rgba(255,107,43,.05);
+  display: block;
+  max-width: 100%;
+  height: auto;
+  background: #1a1d24;
+}
+
+.overlay {
+  display: none;
+  position: absolute;
+  inset: 0;
+  background: rgba(10,12,16,.85);
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 10px;
+  border-radius: 8px;
+  backdrop-filter: blur(4px);
+}
+
+.overlay.on { display: flex; }
+
+.spin {
+  width: 44px;
+  height: 44px;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.rpanel {
+  background: var(--panel);
+  border-left: 1px solid var(--border);
+  padding: 14px 12px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.sc { background: var(--card); border: 1px solid var(--border); border-radius: 6px; padding: 10px 4px; text-align: center; transition: all 0.3s; }
+.sc:hover { border-color: var(--accent); transform: translateY(-2px); }
+.sv { font-size: 1.2rem; font-weight: 700; color: var(--green); font-family: var(--mono); }
+.sk { font-size: 0.58rem; color: var(--dim); text-transform: uppercase; letter-spacing: .5px; margin-top: 2px; }
+
+.alert {
+  background: rgba(255,68,68,.1);
+  border: 1px solid rgba(255,68,68,.4);
+  border-radius: 6px;
+  padding: 10px 12px;
+  font-size: 0.75rem;
+  color: #ff8080;
+  font-family: var(--mono);
+  animation: fborder 1.5s infinite;
+  display: none;
+}
+
+@keyframes fborder { 0%, 100% { border-color: rgba(255,68,68,.4); } 50% { border-color: rgba(255,68,68,1); } }
+
+.dircont { flex: 1; overflow-y: auto; min-height: 0; }
+
+.dph { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 150px; text-align: center; color: var(--dim); gap: 8px; font-size: 0.78rem; }
+.dph .ic { font-size: 2.5rem; margin-bottom: 8px; opacity: 0.5; }
+
+.step { display: flex; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--border); animation: slin 0.3s ease; }
+@keyframes slin { from { transform: translateX(16px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+.snum { width: 24px; height: 24px; background: var(--accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.65rem; font-weight: 700; flex-shrink: 0; font-family: var(--mono); }
+.stxt { font-size: 0.78rem; color: var(--text); line-height: 1.5; }
+.sdst { font-size: 0.62rem; color: var(--dim); font-family: var(--mono); margin-top: 2px; }
+.step.ex .snum { background: var(--green); }
+.step.ex .stxt { color: var(--green); font-weight: 600; }
+
+.dashboard { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 10px; }
+.dbt { font-size: 0.65rem; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--blue); font-family: var(--mono); margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+
+.dbstat { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 0.72rem; }
+.dbstat:last-child { border-bottom: none; }
+.dbstat-l { color: var(--muted); }
+.dbstat-r { font-family: var(--mono); color: var(--text); font-weight: 600; }
+
+.iotpanel { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 10px; }
+.iott { font-size: 0.65rem; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--blue); font-family: var(--mono); margin-bottom: 8px; }
+.srow { display: flex; align-items: center; gap: 7px; padding: 5px 0; font-size: 0.72rem; color: var(--muted); border-bottom: 1px solid var(--border); }
+.srow:last-child { border-bottom: none; }
+.sdot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.sdot.safe { background: var(--green); }
+.sdot.fire { background: var(--fire); animation: blink 0.5s infinite; }
+.sdot.smoke { background: var(--smoke); animation: blink 1s infinite; }
+.sdot.gas { background: var(--gas); animation: blink 0.3s infinite; }
+.sdot.crowd { background: var(--crowd); animation: blink 1.5s infinite; }
+.sdot.blockage { background: var(--blockage); }
+.sval { margin-left: auto; font-family: var(--mono); font-size: 0.65rem; }
+
+::-webkit-scrollbar { width: 3px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+.sound-toggle {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--card);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 1.2rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  z-index: 1000;
+}
+
+.sound-toggle:hover { background: var(--panel); border-color: var(--accent); }
+.sound-toggle.muted { opacity: 0.5; }
+
+@keyframes pathDraw {
+  to { stroke-dashoffset: 0; }
+}
+
+@media (max-width: 1180px) {
+  .main { grid-template-columns: 220px 1fr 250px; }
+  .hdr { padding: 10px 14px; }
+  .ttl { font-size: 1.2rem; }
+}
+
+@media (max-width: 960px) {
+  body { height: auto; min-height: 100vh; overflow: auto; }
+  .hdr { flex-direction: column; align-items: flex-start; gap: 10px; padding: 12px 16px; }
+  .main { display: flex; flex-direction: column; min-height: auto; }
+  .lpanel, .rpanel, .mapsec { border: none; border-bottom: 1px solid var(--border); }
+  .lpanel, .rpanel { padding: 16px; gap: 14px; }
+  .mapsec { min-height: 60vh; }
+  .cwrap { justify-content: flex-start; padding: 16px; overflow: auto; }
+  #cvs { min-width: 700px; }
+  .stats { grid-template-columns: repeat(3, minmax(0,1fr)); }
+  .dashboard { display: none; }
+}
+
+@media (max-width: 640px) {
+  .hdr { padding: 10px 12px; }
+  .hdr-l { gap: 10px; }
+  .ttl { font-size: 1rem; letter-spacing: 1px; }
+  .sub, .badge, .mapscale { font-size: .6rem; }
+  .logo { font-size: 1.4rem; }
+  .lpanel, .rpanel { gap: 10px; padding: 12px; }
+  .ptitle { font-size: .68rem; }
+  .runbtn { padding: 10px; font-size: .8rem; }
+  .clrbtn { font-size: .68rem; }
+  .stats { grid-template-columns: 1fr; }
+  .maphdr { padding: 8px 10px; align-items: flex-start; flex-direction: column; }
+  .cwrap { padding: 8px; }
+  #cvs { min-width: 600px; }
 }
 </style>
 </head>
@@ -123,10 +416,13 @@ select:focus{outline:none;border-color:var(--accent)}
     <div class="logo">!</div>
     <div>
       <h1 class="ttl">SmartEvac <span>ACO</span></h1>
-      <p class="sub">AI-Based Emergency Evacuation - Ant Colony Optimization</p>
+      <p class="sub">AI Emergency Evacuation - Ant Colony Optimization</p>
     </div>
   </div>
-  <div class="badge"><span class="dot"></span> LIVE DEMO - JSON Driven Layout</div>
+  <div class="badge" id="statusBadge" onclick="toggleSound()">
+    <span class="dot"></span>
+    <span id="statusText">SYSTEM READY</span>
+  </div>
 </header>
 
 <div class="main">
@@ -141,21 +437,24 @@ select:focus{outline:none;border-color:var(--accent)}
     </div>
 
     <div class="cg">
-      <label class="cl">Fire Location(s)</label>
+      <label class="cl">Emergency Zones (Hold Ctrl to select multiple)</label>
       <div class="cblist" id="fireCBs"></div>
     </div>
 
     <div class="cg">
       <label class="cl">Emergency Type</label>
       <select id="emerType">
-        <option value="fire">Fire</option>
-        <option value="gas">Gas Leak</option>
-        <option value="earthquake">Earthquake</option>
-        <option value="general">General</option>
+        <option value="FIRE">FIRE - Critical</option>
+        <option value="SMOKE">SMOKE - Hazard</option>
+        <option value="BLOCKAGE">BLOCKAGE - Obstruction</option>
+        <option value="CROWD">CROWD - Congestion</option>
+        <option value="GAS">GAS - Toxic</option>
       </select>
     </div>
 
-    <button class="runbtn" id="runBtn" onclick="runEvac()">RUN ACO EVACUATION</button>
+    <button class="runbtn" id="runBtn" onclick="runEvac()">
+      <span>▶</span> RUN EVACUATION
+    </button>
     <button class="clrbtn" onclick="resetAll()">Reset Map</button>
 
     <div class="lgd">
@@ -163,48 +462,67 @@ select:focus{outline:none;border-color:var(--accent)}
       <div class="li"><span class="lc" style="background:#e8e8e8;border:1px solid #999"></span> Room</div>
       <div class="li"><span class="lc" style="background:#f0f0f0;border:1px solid #ccc"></span> Corridor</div>
       <div class="li"><span class="lc" style="background:#3b8fdb"></span> Start Point</div>
-      <div class="li"><span class="lc" style="background:#ff4444"></span> Fire Zone</div>
+      <div class="li"><span class="lc" style="background:#ff4444"></span> FIRE</div>
+      <div class="li"><span class="lc" style="background:#f97316"></span> SMOKE</div>
+      <div class="li"><span class="lc" style="background:#3b82f6"></span> BLOCKAGE</div>
+      <div class="li"><span class="lc" style="background:#fbbf24"></span> CROWD</div>
+      <div class="li"><span class="lc" style="background:#a855f7"></span> GAS</div>
       <div class="li"><span class="lc" style="background:#22c55e"></span> Safe Path</div>
       <div class="li"><span class="lc" style="background:#22c55e"></span> Exit</div>
       <div class="li"><span class="lc" style="background:#a78bfa"></span> Staircase</div>
-      <div class="li"><span class="lc" style="background:#94a3b8"></span> Lift (Disabled)</div>
-      <div class="li"><span class="lc" style="background:#fff;border:1px solid #111"></span> Door</div>
-      <div class="li"><span class="lc" style="background:#6b7280"></span> Blocked Zone</div>
     </div>
   </aside>
 
   <div class="mapsec">
     <div class="maphdr">
-      <span class="maptitle" id="mapTitle">Building Layout</span>
-      <span class="mapscale" id="mapScale">Loading layout...</span>
+      <span class="maptitle" id="mapTitle">Building Layout - SJT Ground Floor</span>
+      <span class="mapscale" id="mapScale">Scale: 1 unit = 1 meter | Loading...</span>
     </div>
     <div class="cwrap">
-      <canvas id="cvs" width="800" height="530"></canvas>
+      <canvas id="cvs" width="850" height="560"></canvas>
       <div class="overlay" id="ov">
         <div class="spin"></div>
-        <p style="font-family:var(--mono);font-size:.82rem">Running ACO algorithm...</p>
-        <p style="font-size:.7rem;color:var(--dim);font-family:var(--mono)">Computing the safest route</p>
+        <p style="font-family:var(--mono);font-size:.85rem">Running ACO Algorithm...</p>
+        <p style="font-size:.7rem;color:var(--dim);font-family:var(--mono)">Computing safest evacuation route</p>
       </div>
     </div>
   </div>
 
   <aside class="rpanel">
     <div class="ptitle">Evacuation Plan</div>
-    <div class="stats" id="stats" style="display:none">
+    
+    <div class="stats" id="stats">
       <div class="sc"><div class="sv" id="sDist">--</div><div class="sk">Distance</div></div>
       <div class="sc"><div class="sv" id="sSteps">--</div><div class="sk">Steps</div></div>
       <div class="sc"><div class="sv" id="sExit">--</div><div class="sk">Exit</div></div>
     </div>
+    
     <div class="alert" id="alert"></div>
+    
     <div class="dircont" id="dirs">
-      <div class="dph"><div class="ic">A</div><p>Select a start room and fire location,<br>then click <strong>RUN ACO EVACUATION</strong></p><p style="font-size:.68rem;opacity:.6;margin-top:4px">The backend pathfinder will use building_layout.json.</p></div>
+      <div class="dph">
+        <div class="ic">↑</div>
+        <p>Select a start location and emergency zone,<br>then click <strong>RUN EVACUATION</strong></p>
+        <p style="font-size:.65rem;opacity:.5;margin-top:6px">The ACO algorithm will find the safest route</p>
+      </div>
     </div>
+
+    <div class="dashboard">
+      <div class="dbt">📊 System Dashboard</div>
+      <div class="dbstat"><span class="dbstat-l">Active Emergencies</span><span class="dbstat-r" id="dbEmergencies">0</span></div>
+      <div class="dbstat"><span class="dbstat-l">System Uptime</span><span class="dbstat-r" id="dbUptime">0:00</span></div>
+      <div class="dbstat"><span class="dbstat-l">Evacuations Today</span><span class="dbstat-r" id="dbEvac">0</span></div>
+      <div class="dbstat"><span class="dbstat-l">Last Alert</span><span class="dbstat-r" id="dbLast">--</span></div>
+    </div>
+
     <div class="iotpanel">
       <div class="iott">IoT Sensor Status</div>
       <div id="sensorList"></div>
     </div>
   </aside>
 </div>
+
+<button class="sound-toggle" id="soundToggle" onclick="toggleSound()" title="Toggle Sound Alerts">🔔</button>
 
 <script>
 let LAYOUT = null;
@@ -217,10 +535,16 @@ let rafH = null;
 let activeBlockedElements = new Set();
 let activeHazardZones = [];
 let CORRIDOR_LABELS = new Map();
+let soundEnabled = true;
+let evacCount = 0;
+let startTime = Date.now();
+let lastAlertTime = null;
+let animationMarkers = [];
+let walkingPerson = null;
 
 const cvs = document.getElementById("cvs");
 const ctx = cvs.getContext("2d");
-const VIEW = {padding: 32, pixelsPerMeter: 16};
+const VIEW = { padding: 35, pixelsPerMeter: 14 };
 const API_BASES = (() => {
   const bases = [];
   if (window.location.protocol.startsWith("http")) {
@@ -230,13 +554,16 @@ const API_BASES = (() => {
   return [...new Set(bases)];
 })();
 
+const EMERGENCY_COLORS = {
+  FIRE: '#ff4444',
+  SMOKE: '#f97316',
+  BLOCKAGE: '#3b82f6',
+  CROWD: '#fbbf24',
+  GAS: '#a855f7'
+};
+
 function normalizeRect(item) {
-  return {
-    ...item,
-    w: item.w ?? item.width ?? 0,
-    h: item.h ?? item.height ?? 0,
-    cap: item.cap ?? item.capacity ?? 0
-  };
+  return { ...item, w: item.w ?? item.width ?? 0, h: item.h ?? item.height ?? 0 };
 }
 
 function normalizeLayout(raw) {
@@ -250,21 +577,15 @@ function normalizeLayout(raw) {
   const graph = {};
 
   (raw.waypoints || []).forEach(wp => {
-    graph[wp.id] = {x: wp.x, y: wp.y, label: wp.label || wp.id};
+    graph[wp.id] = { x: wp.x, y: wp.y, label: wp.label || wp.id };
   });
   exits.forEach(ex => {
-    graph[ex.id] = {x: ex.x + ex.w / 2, y: ex.y + ex.h / 2, label: ex.name || ex.id};
+    graph[ex.id] = { x: ex.x + ex.w / 2, y: ex.y + ex.h / 2, label: ex.name || ex.id };
   });
 
   return {
     building: raw.building || {},
-    rooms,
-    corridors,
-    stairs,
-    lifts,
-    exits,
-    doors,
-    hazardZones,
+    rooms, corridors, stairs, lifts, exits, doors, hazardZones,
     waypoints: raw.waypoints || [],
     connections: raw.connections || {},
     sensor_map: raw.sensor_map || {},
@@ -277,43 +598,21 @@ function shortCorridorLabel(corridor) {
 }
 
 function roomCenter(room) {
-  return {x: room.x + room.w / 2, y: room.y + room.h / 2};
+  return { x: room.x + room.w / 2, y: room.y + room.h / 2 };
 }
 
-function pxX(x) {
-  return VIEW.padding + x * VIEW.pixelsPerMeter;
-}
-
-function pxY(y) {
-  return VIEW.padding + y * VIEW.pixelsPerMeter;
-}
-
-function pxSize(len) {
-  return len * VIEW.pixelsPerMeter;
-}
+function pxX(x) { return VIEW.padding + x * VIEW.pixelsPerMeter; }
+function pxY(y) { return VIEW.padding + y * VIEW.pixelsPerMeter; }
+function pxSize(len) { return len * VIEW.pixelsPerMeter; }
 
 function setCanvasSize() {
-  const rects = [
-    ...LAYOUT.rooms,
-    ...LAYOUT.corridors,
-    ...LAYOUT.stairs,
-    ...LAYOUT.lifts,
-    ...LAYOUT.exits,
-    ...LAYOUT.doors,
-    ...LAYOUT.hazardZones
-  ];
+  const rects = [...LAYOUT.rooms, ...LAYOUT.corridors, ...LAYOUT.stairs, ...LAYOUT.lifts, ...LAYOUT.exits, ...LAYOUT.doors, ...LAYOUT.hazardZones];
   const maxX = rects.reduce((m, item) => Math.max(m, item.x + item.w), 0);
   const maxY = rects.reduce((m, item) => Math.max(m, item.y + item.h), 0);
-  const ppm = Number(LAYOUT.building.pixels_per_meter || 16);
-  VIEW.pixelsPerMeter = Number.isFinite(ppm) && ppm > 0 ? ppm : 16;
+  const ppm = Number(LAYOUT.building.pixels_per_meter || 14);
+  VIEW.pixelsPerMeter = Number.isFinite(ppm) && ppm > 0 ? ppm : 14;
   cvs.width = Math.ceil(pxSize(Math.max(LAYOUT.building.width || 0, maxX)) + VIEW.padding * 2);
   cvs.height = Math.ceil(pxSize(Math.max(LAYOUT.building.height || 0, maxY)) + VIEW.padding * 2);
-}
-
-function sensorLabel(sensorId, roomId) {
-  const room = ROOM_LOOKUP[roomId];
-  const pretty = sensorId.replace("_", " ").replace(/\b\w/g, c => c.toUpperCase());
-  return room ? `${pretty} - ${room.name} [${room.id}]` : `${pretty} - ${roomId}`;
 }
 
 function populateControls() {
@@ -332,16 +631,10 @@ function populateControls() {
     start.appendChild(option);
   });
 
-  const fireSourcesForUi = LAYOUT.corridors.map(corridor => ({
-    id: corridor.id,
-    name: shortCorridorLabel(corridor),
-    kind: "Corridor"
-  }));
-
-  fireSourcesForUi.forEach(item => {
+  LAYOUT.corridors.forEach((corridor, index) => {
     const label = document.createElement("label");
     label.className = "cbl";
-    label.innerHTML = `<input type="checkbox" value="${item.id}"> ${item.name} - ${item.kind}`;
+    label.innerHTML = `<input type="checkbox" value="${corridor.id}"> ${shortCorridorLabel(corridor)} - ${corridor.name.split('_').pop() || 'Corridor'}`;
     fires.appendChild(label);
   });
 
@@ -351,20 +644,17 @@ function populateControls() {
     row.className = "srow";
     row.dataset.sensorId = sensorId;
     row.dataset.roomId = roomId;
-    row.innerHTML = `<span class="sdot safe"></span><span>${sensorLabel(sensorId, roomId)}</span><span class="sval" style="color:var(--green)">Normal</span>`;
+    row.innerHTML = `<span class="sdot safe"></span><span>${sensorId.replace('_', ' ')}</span><span class="sval" style="color:var(--green)">Normal</span>`;
     sensors.appendChild(row);
   });
 }
 
 function buildCorridorLabels() {
-  CORRIDOR_LABELS = new Map(
-    LAYOUT.corridors.map((corridor, index) => [corridor.id, `C${index + 1}`])
-  );
+  CORRIDOR_LABELS = new Map(LAYOUT.corridors.map((corridor, index) => [corridor.id, `C${index + 1}`]));
 }
 
 async function fetchJson(path) {
   const candidates = [];
-
   if (path.startsWith("http://") || path.startsWith("https://")) {
     candidates.push(path);
   } else {
@@ -375,23 +665,18 @@ async function fetchJson(path) {
   for (const url of candidates) {
     try {
       const res = await fetch(url);
-      if (res.ok) {
-        return await res.json();
-      }
-    } catch (err) {
-    }
+      if (res.ok) return await res.json();
+    } catch (err) { }
   }
-  throw new Error(`Unable to load ${path}. Start the Flask server at http://localhost:5000 and open the app from there.`);
+  throw new Error(`Unable to load ${path}. Start Flask server at http://localhost:5000`);
 }
 
-async function fetchLayout() {
-  return fetchJson("/layout");
-}
+async function fetchLayout() { return fetchJson("/layout"); }
 
 function drawAll() {
   if (!LAYOUT) return;
   ctx.clearRect(0, 0, cvs.width, cvs.height);
-  ctx.fillStyle = "#c8c8c8";
+  ctx.fillStyle = "#1a1d24";
   ctx.fillRect(0, 0, cvs.width, cvs.height);
   drawGrid();
   drawWaypoints();
@@ -403,25 +688,30 @@ function drawAll() {
   drawExits();
   drawHazards();
   drawRuler();
-  for (const sourceId of fireSources) drawFireSource(sourceId);
-  if (currentPath.length > 1) drawPath();
+  
+  for (const sourceId of fireSources) drawHazardEffect(sourceId);
+  
+  if (currentPath.length > 1) {
+    drawAnimatedPath();
+    if (walkingPerson) drawWalkingPerson();
+  }
+  
+  requestAnimationFrame(drawAll);
 }
 
 function drawGrid() {
-  ctx.strokeStyle = "rgba(60,60,60,0.18)";
+  ctx.strokeStyle = "rgba(60,60,60,0.15)";
   ctx.lineWidth = 1;
   for (let x = 0; x <= (LAYOUT.building.width || 0); x += 1) {
-    const px = pxX(x);
     ctx.beginPath();
-    ctx.moveTo(px, VIEW.padding / 2);
-    ctx.lineTo(px, cvs.height - VIEW.padding / 2);
+    ctx.moveTo(pxX(x), VIEW.padding / 2);
+    ctx.lineTo(pxX(x), cvs.height - VIEW.padding / 2);
     ctx.stroke();
   }
   for (let y = 0; y <= (LAYOUT.building.height || 0); y += 1) {
-    const py = pxY(y);
     ctx.beginPath();
-    ctx.moveTo(VIEW.padding / 2, py);
-    ctx.lineTo(cvs.width - VIEW.padding / 2, py);
+    ctx.moveTo(VIEW.padding / 2, pxY(y));
+    ctx.lineTo(cvs.width - VIEW.padding / 2, pxY(y));
     ctx.stroke();
   }
 }
@@ -429,20 +719,19 @@ function drawGrid() {
 function drawCorridors() {
   for (const c of LAYOUT.corridors) {
     const isBlocked = activeBlockedElements.has(c.id);
-    const x = pxX(c.x);
-    const y = pxY(c.y);
-    const w = pxSize(c.w);
-    const h = pxSize(c.h);
+    const x = pxX(c.x), y = pxY(c.y), w = pxSize(c.w), h = pxSize(c.h);
     const label = shortCorridorLabel(c);
-    const fontSize = Math.max(7, Math.min(h * 0.48, 11));
-    ctx.fillStyle = isBlocked ? "#6b7280" : "#f0f0f0";
+    const fontSize = Math.max(7, Math.min(h * 0.45, 11));
+    
+    ctx.fillStyle = isBlocked ? "#4b5563" : "#2a2d3a";
     ctx.fillRect(x, y, w, h);
-    ctx.strokeStyle = isBlocked ? "#111827" : "#ccc";
+    ctx.strokeStyle = isBlocked ? "#1f2937" : "#3b4455";
     ctx.lineWidth = 1;
     ctx.setLineDash([4, 4]);
     ctx.strokeRect(x, y, w, h);
     ctx.setLineDash([]);
-    ctx.fillStyle = "#000";
+    
+    ctx.fillStyle = isBlocked ? "#9ca3af" : "#8b90a0";
     ctx.font = `bold ${fontSize}px var(--mono)`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
@@ -454,32 +743,26 @@ function drawRooms() {
   for (const r of LAYOUT.rooms) {
     const isFire = fireSources.includes(r.id);
     const isBlocked = activeBlockedElements.has(r.id);
-    const x = pxX(r.x);
-    const y = pxY(r.y);
-    const w = pxSize(r.w);
-    const h = pxSize(r.h);
-    ctx.fillStyle = isFire ? "#ffdddd" : isBlocked ? "#9ca3af" : "#e8e8e8";
+    const x = pxX(r.x), y = pxY(r.y), w = pxSize(r.w), h = pxSize(r.h);
+    
+    ctx.fillStyle = isFire ? "#3d1a1a" : isBlocked ? "#374151" : "#252830";
     ctx.fillRect(x, y, w, h);
-    ctx.strokeStyle = isFire ? "#ff4444" : isBlocked ? "#1f2937" : "#999";
+    ctx.strokeStyle = isFire ? "#ff4444" : isBlocked ? "#1f2937" : "#4b5563";
     ctx.lineWidth = isFire ? 2.5 : 1.5;
     ctx.strokeRect(x, y, w, h);
 
-    ctx.fillStyle = isFire ? "#cc0000" : isBlocked ? "#111827" : "#222";
+    ctx.fillStyle = isFire ? "#ff6b6b" : isBlocked ? "#9ca3af" : "#e5e7eb";
     ctx.font = "bold 11px 'Exo 2',sans-serif";
     ctx.textAlign = "center";
     ctx.fillText(r.name, x + w / 2, y + h / 2 - 6);
 
     ctx.font = "9px var(--mono)";
-    ctx.fillStyle = "#888";
+    ctx.fillStyle = "#6b7280";
     ctx.fillText(`[${r.id}]`, x + w / 2, y + h / 2 + 8);
 
     ctx.font = "8px var(--mono)";
-    ctx.fillStyle = "#aaa";
+    ctx.fillStyle = "#4b5563";
     ctx.fillText(`${r.w.toFixed(0)}m x ${r.h.toFixed(0)}m`, x + w / 2, y + h / 2 + 20);
-
-    ctx.font = "8px 'Exo 2',sans-serif";
-    ctx.fillStyle = "#bbb";
-    ctx.fillText(`Cap:${r.cap}`, x + w / 2, y + h - 6);
   }
 }
 
@@ -495,10 +778,7 @@ function drawDoors() {
 
 function drawStairs() {
   for (const s of LAYOUT.stairs) {
-    const x = pxX(s.x);
-    const y = pxY(s.y);
-    const w = pxSize(s.w);
-    const h = pxSize(s.h);
+    const x = pxX(s.x), y = pxY(s.y), w = pxSize(s.w), h = pxSize(s.h);
     ctx.fillStyle = "#c4b5fd";
     ctx.fillRect(x, y, w, h);
     ctx.strokeStyle = "#7c3aed";
@@ -521,10 +801,7 @@ function drawStairs() {
 
 function drawLifts() {
   for (const l of LAYOUT.lifts) {
-    const x = pxX(l.x);
-    const y = pxY(l.y);
-    const w = pxSize(l.w);
-    const h = pxSize(l.h);
+    const x = pxX(l.x), y = pxY(l.y), w = pxSize(l.w), h = pxSize(l.h);
     ctx.fillStyle = "#94a3b8";
     ctx.fillRect(x, y, w, h);
     ctx.strokeStyle = "#64748b";
@@ -550,31 +827,29 @@ function drawLifts() {
 function drawExits() {
   const pulse = 0.5 + 0.5 * Math.sin(Date.now() / 500);
   for (const e of LAYOUT.exits) {
-    const x = pxX(e.x);
-    const y = pxY(e.y);
-    const w = pxSize(e.w);
-    const h = Math.max(pxSize(e.h), 8);
-    const grd = ctx.createRadialGradient(x + w / 2, y + h / 2, 2, x + w / 2, y + h / 2, 30);
-    grd.addColorStop(0, `rgba(34,197,94,${0.3 + pulse * 0.3})`);
+    const x = pxX(e.x), y = pxY(e.y), w = pxSize(e.w), h = Math.max(pxSize(e.h), 8);
+    
+    const grd = ctx.createRadialGradient(x + w / 2, y + h / 2, 2, x + w / 2, y + h / 2, 35);
+    grd.addColorStop(0, `rgba(34,197,94,${0.4 + pulse * 0.3})`);
     grd.addColorStop(1, "rgba(34,197,94,0)");
     ctx.fillStyle = grd;
-    ctx.fillRect(x - 20, y - 20, w + 40, h + 40);
+    ctx.fillRect(x - 25, y - 25, w + 50, h + 50);
+    
     ctx.fillStyle = "#22c55e";
     ctx.fillRect(x, y, w, h);
     ctx.strokeStyle = "#166534";
     ctx.lineWidth = 2;
     ctx.strokeRect(x, y, w, h);
     ctx.fillStyle = "#14532d";
-    ctx.font = "bold 7px var(--mono)";
+    ctx.font = "bold 8px var(--mono)";
     ctx.textAlign = "center";
-    ctx.fillText(e.name, x + w / 2, y + h + 11);
+    ctx.fillText(e.name, x + w / 2, y + h + 12);
   }
-  requestAnimationFrame(drawAll);
 }
 
 function drawHazards() {
   for (const hz of activeHazardZones) {
-    ctx.fillStyle = "rgba(255, 68, 68, 0.35)";
+    ctx.fillStyle = "rgba(255, 68, 68, 0.25)";
     ctx.strokeStyle = "#b91c1c";
     ctx.lineWidth = 2;
     ctx.fillRect(pxX(hz.x), pxY(hz.y), pxSize(hz.w), pxSize(hz.h));
@@ -585,69 +860,115 @@ function drawHazards() {
 function drawWaypoints() {
   Object.values(LAYOUT.graph).forEach(node => {
     ctx.beginPath();
-    ctx.arc(pxX(node.x), pxY(node.y), 2, 0, Math.PI * 2);
-    ctx.fillStyle = "rgba(59, 143, 219, 0.45)";
+    ctx.arc(pxX(node.x), pxY(node.y), 2.5, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(59, 143, 219, 0.5)";
     ctx.fill();
   });
 }
 
-function drawFireSource(sourceId) {
+function drawHazardEffect(sourceId) {
   const source = [...LAYOUT.rooms, ...LAYOUT.corridors].find(item => item.id === sourceId);
   if (!source) return;
-  const flick = 0.7 + 0.3 * Math.sin(Date.now() / 200);
+  
+  const flicker = 0.6 + 0.4 * Math.sin(Date.now() / 180);
   const center = roomCenter(source);
-  const cx = pxX(center.x);
-  const cy = pxY(center.y);
-  const grd = ctx.createRadialGradient(cx, cy, 8, cx, cy, Math.max(pxSize(source.w), pxSize(source.h)));
-  grd.addColorStop(0, `rgba(255,100,0,${0.6 * flick})`);
-  grd.addColorStop(0.5, `rgba(255,50,0,${0.3 * flick})`);
+  const cx = pxX(center.x), cy = pxY(center.y);
+  const radius = Math.max(pxSize(source.w), pxSize(source.h)) * 0.8;
+  
+  const grd = ctx.createRadialGradient(cx, cy, 5, cx, cy, radius);
+  grd.addColorStop(0, `rgba(255,80,0,${0.5 * flicker})`);
+  grd.addColorStop(0.4, `rgba(255,30,0,${0.3 * flicker})`);
   grd.addColorStop(1, "rgba(255,0,0,0)");
   ctx.fillStyle = grd;
-  ctx.fillRect(pxX(source.x) - 10, pxY(source.y) - 10, pxSize(source.w) + 20, pxSize(source.h) + 20);
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+  ctx.fill();
+  
   ctx.fillStyle = "#ff4444";
-  ctx.font = "bold 8px var(--mono)";
+  ctx.font = "bold 9px var(--mono)";
   ctx.textAlign = "center";
-  ctx.fillText("FIRE", cx, pxY(source.y) + 12);
+  ctx.fillText("DANGER", cx, pxY(source.y) + 14);
 }
 
-function drawPath() {
+function drawAnimatedPath() {
   const pts = currentPath;
   const total = pts.length;
-  const stops = Math.floor(pathProg * (total - 1));
+  const stops = Math.min(Math.floor(pathProg * (total - 1)) + 1, total - 1);
+  
   if (stops < 1) return;
 
-  ctx.beginPath();
-  ctx.moveTo(pxX(pts[0].x), pxY(pts[0].y));
-  for (let i = 1; i <= stops; i++) ctx.lineTo(pxX(pts[i].x), pxY(pts[i].y));
-  ctx.shadowColor = "#22c55e66";
-  ctx.shadowBlur = 12;
+  ctx.shadowColor = "#22c55e";
+  ctx.shadowBlur = 15;
   ctx.strokeStyle = "#22c55e";
-  ctx.lineWidth = 4;
+  ctx.lineWidth = 5;
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
-  ctx.setLineDash([8, 4]);
+  ctx.setLineDash([12, 6]);
+  
+  ctx.beginPath();
+  ctx.moveTo(pxX(pts[0].x), pxY(pts[0].y));
+  for (let i = 1; i <= stops; i++) {
+    ctx.lineTo(pxX(pts[i].x), pxY(pts[i].y));
+  }
   ctx.stroke();
   ctx.setLineDash([]);
   ctx.shadowBlur = 0;
 
   for (let i = 0; i <= stops; i++) {
+    const size = i === 0 || i === total - 1 ? 7 : 5;
     ctx.beginPath();
-    ctx.arc(pxX(pts[i].x), pxY(pts[i].y), 5, 0, Math.PI * 2);
-    ctx.fillStyle = i === 0 ? "#3b8fdb" : i === total - 1 ? "#22c55e" : "#22c55e";
+    ctx.arc(pxX(pts[i].x), pxY(pts[i].y), size, 0, Math.PI * 2);
+    ctx.fillStyle = i === 0 ? "#3b8fdb" : "#22c55e";
     ctx.fill();
     ctx.strokeStyle = "#fff";
-    ctx.lineWidth = 1.5;
+    ctx.lineWidth = 2;
     ctx.stroke();
+    
+    if (i > 0 && i < stops) {
+      ctx.fillStyle = "#fff";
+      ctx.font = "bold 9px var(--mono)";
+      ctx.textAlign = "center";
+      ctx.fillText(i.toString(), pxX(pts[i].x), pxY(pts[i].y) - 10);
+    }
   }
 }
 
+function drawWalkingPerson() {
+  if (!walkingPerson || currentPath.length < 2) return;
+  
+  const pts = currentPath;
+  const total = pts.length;
+  const t = (pathProg * (total - 1)) % 1;
+  const segment = Math.floor(pathProg * (total - 1));
+  const nextSegment = Math.min(segment + 1, total - 1);
+  
+  const p1 = pts[segment], p2 = pts[nextSegment];
+  const x = pxX(p1.x + (p2.x - p1.x) * t);
+  const y = pxY(p1.y + (p2.y - p1.y) * t);
+  
+  const bob = Math.sin(Date.now() / 100) * 2;
+  
+  ctx.fillStyle = "#22c55e";
+  ctx.beginPath();
+  ctx.arc(x, y + bob - 8, 5, 0, Math.PI * 2);
+  ctx.fill();
+  
+  ctx.fillStyle = "#166534";
+  ctx.beginPath();
+  ctx.moveTo(x, y + bob - 3);
+  ctx.lineTo(x - 5, y + bob + 8);
+  ctx.lineTo(x + 5, y + bob + 8);
+  ctx.closePath();
+  ctx.fill();
+}
+
 function drawRuler() {
-  ctx.strokeStyle = "#aaa";
-  ctx.fillStyle = "#888";
+  ctx.strokeStyle = "#888";
+  ctx.fillStyle = "#666";
   ctx.lineWidth = 0.5;
   ctx.font = "7px var(--mono)";
   ctx.textAlign = "center";
-  const y = cvs.height - 10;
+  const y = cvs.height - 12;
   const x1 = VIEW.padding;
   const x2 = x1 + pxSize(LAYOUT.building.width || 0);
   ctx.beginPath();
@@ -660,18 +981,26 @@ function drawRuler() {
     ctx.moveTo(x, y - 4);
     ctx.lineTo(x, y + 4);
     ctx.stroke();
-    ctx.fillText(`${meter}m`, x, y - 6);
+    ctx.fillText(`${meter}m`, x, y - 7);
   }
 }
 
 function animatePath(coords) {
   currentPath = coords;
   pathProg = 0;
+  walkingPerson = { progress: 0 };
+  
   if (rafH) cancelAnimationFrame(rafH);
+  
   function step() {
-    pathProg = Math.min(1, pathProg + 0.025);
-    drawAll();
-    if (pathProg < 1) rafH = requestAnimationFrame(step);
+    pathProg = Math.min(1, pathProg + 0.012);
+    if (pathProg < 1) {
+      rafH = requestAnimationFrame(step);
+    } else {
+      evacCount++;
+      updateDashboard();
+      playAlertSound();
+    }
   }
   rafH = requestAnimationFrame(step);
 }
@@ -679,37 +1008,35 @@ function animatePath(coords) {
 function showAlert(msg) {
   const el = document.getElementById("alert");
   el.style.display = "block";
-  el.textContent = msg;
+  el.textContent = "⚠ " + msg;
+  lastAlertTime = new Date();
+  updateDashboard();
+  
+  document.getElementById("statusBadge").classList.add("alert-active");
+  document.getElementById("statusText").textContent = "ALERT ACTIVE";
 }
 
 function clearRenderedPath() {
   currentPath = [];
   pathProg = 0;
-  if (rafH) {
-    cancelAnimationFrame(rafH);
-    rafH = null;
-  }
+  walkingPerson = null;
+  if (rafH) { cancelAnimationFrame(rafH); rafH = null; }
 }
 
 function showDirs(dirs) {
-  if (!dirs.length) {
-    document.getElementById("dirs").innerHTML = '<div class="dph"><div class="ic">X</div><p>No safe path found</p></div>';
+  if (!dirs || dirs.length === 0) {
+    document.getElementById("dirs").innerHTML = '<div class="dph"><div class="ic">✗</div><p>No safe path found</p></div>';
     return;
   }
 
-  let h = `<div style="padding:4px 0 8px;font-size:.65rem;color:var(--dim);font-family:var(--mono);letter-spacing:1px">DIRECTIONS (${dirs.length} STEPS)</div>`;
+  let h = `<div style="padding:6px 0 10px;font-size:.65rem;color:var(--dim);font-family:var(--mono);letter-spacing:1px">DIRECTIONS (${dirs.length} STEPS)</div>`;
   dirs.forEach(d => {
     const isExit = String(d.to || "").startsWith("E") || String(d.instruction || "").includes("EVACUATE");
-    const shortInstruction = String(d.instruction || d.text || "")
-      .replace(/\s*->\s*/g, " ")
-      .replace(/\bDoor\s+[A-Z0-9]+\b/g, "")
-      .replace(/\bJunction\b/g, "")
-      .replace(/\s+/g, " ")
-      .trim();
     h += `<div class="step ${isExit ? "ex" : ""}">
       <div class="snum">${d.step}</div>
       <div>
-        <div class="stxt">${shortInstruction}</div>
+        <div class="stxt">${d.instruction || d.text || ""}</div>
+        <div class="sdst">${d.distance_m || 0}m</div>
       </div>
     </div>`;
   });
@@ -723,40 +1050,51 @@ function updateSensors(fires) {
     row.querySelector(".sval").style.color = "var(--green)";
     row.querySelector(".sval").textContent = "Normal";
   });
-  fires.forEach(roomId => {
-    const row = Array.from(rows).find(r => r.dataset.roomId === roomId);
+  
+  fires.forEach(zoneId => {
+    const zoneType = document.getElementById("emerType").value.toLowerCase();
+    const row = Array.from(rows).find(r => r.dataset.roomId === zoneId);
     if (!row) return;
-    row.querySelector(".sdot").className = "sdot fire";
-    row.querySelector(".sval").style.color = "var(--fire)";
-    row.querySelector(".sval").textContent = "FIRE!";
+    row.querySelector(".sdot").className = `sdot ${zoneType}`;
+    row.querySelector(".sval").style.color = `var(--${zoneType === 'fire' ? 'fire' : zoneType === 'gas' ? 'gas' : zoneType === 'crowd' ? 'crowd' : zoneType === 'blockage' ? 'blue' : 'smoke'})`;
+    row.querySelector(".sval").textContent = zoneType.toUpperCase() + "!";
   });
+  
+  document.getElementById("dbEmergencies").textContent = fires.length;
 }
 
-async function runEvac() {
-  if (!LAYOUT) {
-    showAlert("Layout is still loading.");
-    return;
+function updateDashboard() {
+  const elapsed = Math.floor((Date.now() - startTime) / 1000);
+  const mins = Math.floor(elapsed / 60);
+  const secs = elapsed % 60;
+  document.getElementById("dbUptime").textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
+  document.getElementById("dbEvac").textContent = evacCount;
+  
+  if (lastAlertTime) {
+    const alertElapsed = Math.floor((Date.now() - lastAlertTime) / 1000);
+    document.getElementById("dbLast").textContent = alertElapsed < 60 ? `${alertElapsed}s ago` : `${Math.floor(alertElapsed / 60)}m ago`;
   }
+}
+
+setInterval(updateDashboard, 1000);
+
+async function runEvac() {
+  if (!LAYOUT) { showAlert("Layout is still loading."); return; }
 
   const start = document.getElementById("startRoom").value;
   const emergencyType = document.getElementById("emerType").value;
   const fires = Array.from(document.querySelectorAll("#fireCBs input:checked")).map(c => c.value);
 
-  if (!start) {
-    showAlert("Please select a start location.");
-    return;
-  }
-  if (fires.includes(start)) {
-    showAlert("You cannot start from a burning room.");
-    return;
-  }
+  if (!start) { showAlert("Please select a start location."); return; }
+  if (fires.includes(start)) { showAlert("Cannot start from a hazard zone."); return; }
 
   fireSources = [...fires];
   activeBlockedElements = new Set(fires);
   activeHazardZones = [];
+  
   document.getElementById("runBtn").disabled = true;
   document.getElementById("ov").classList.add("on");
-  updateSensors(fires.filter(id => ROOM_LOOKUP[id]));
+  updateSensors(fires);
 
   try {
     let result = null;
@@ -766,47 +1104,38 @@ async function runEvac() {
       try {
         const response = await fetch(`${base}/find-path`, {
           method: "POST",
-          headers: {"Content-Type": "application/json"},
-          body: JSON.stringify({
-            start_room: start,
-            fire_locations: fires,
-            emergency_type: emergencyType
-          })
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ start_room: start, emergencies: fires.map(f => ({ location: f, type: emergencyType })) })
         });
-
         result = await response.json();
-        if (!response.ok || result.success === false) {
-          const error = new Error(result.error || "No safe path found.");
-          error.result = result;
-          throw error;
-        }
+        if (!response.ok || result.success === false) throw new Error(result.error || "No safe path found.");
         lastError = null;
         break;
-      } catch (err) {
-        lastError = err;
-      }
+      } catch (err) { lastError = err; }
     }
 
-    if (!result || lastError) {
-      throw lastError || new Error("Could not reach the backend pathfinder.");
-    }
+    if (!result || lastError) throw lastError || new Error("Could not reach the backend.");
 
     activeBlockedElements = new Set(result.blocked_elements || fires);
     activeHazardZones = result.hazard_zones || [];
+    
     animatePath(result.path_coords || []);
+    
     document.getElementById("stats").style.display = "grid";
     document.getElementById("sDist").textContent = `${Number(result.total_distance_m || 0).toFixed(1)}m`;
     document.getElementById("sSteps").textContent = result.total_steps ?? (result.directions || []).length;
     document.getElementById("sExit").textContent = result.best_exit || "--";
-    showAlert(`${String(emergencyType).toUpperCase()} emergency | Evacuate via ${result.best_exit} | ${Number(result.total_distance_m || 0).toFixed(1)}m total`);
+    
+    showAlert(`${emergencyType} at ${fires.length} zone(s) | Route: ${result.best_exit} | ${Number(result.total_distance_m || 0).toFixed(1)}m`);
     showDirs(result.directions || []);
+    
   } catch (err) {
     clearRenderedPath();
     activeBlockedElements = new Set(err.result?.blocked_elements || fires);
     activeHazardZones = err.result?.hazard_zones || [];
     document.getElementById("stats").style.display = "none";
     showDirs([]);
-    showAlert(`Pathfinding failed: ${err.message}`);
+    showAlert(`Error: ${err.message}`);
     drawAll();
   } finally {
     document.getElementById("ov").classList.remove("on");
@@ -820,17 +1149,45 @@ function resetAll() {
   activeBlockedElements = new Set();
   activeHazardZones = [];
   document.getElementById("startRoom").value = "";
-  document.getElementById("emerType").value = "fire";
+  document.getElementById("emerType").value = "FIRE";
   document.querySelectorAll("#fireCBs input").forEach(c => c.checked = false);
   document.getElementById("stats").style.display = "none";
   document.getElementById("alert").style.display = "none";
-  document.getElementById("dirs").innerHTML = '<div class="dph"><div class="ic">A</div><p>Select a start room and fire location,<br>then click <strong>RUN ACO EVACUATION</strong></p><p style="font-size:.68rem;opacity:.6;margin-top:4px">The backend pathfinder will use building_layout.json.</p></div>';
+  document.getElementById("statusBadge").classList.remove("alert-active");
+  document.getElementById("statusText").textContent = "SYSTEM READY";
+  document.getElementById("dirs").innerHTML = '<div class="dph"><div class="ic">↑</div><p>Select a start location and emergency zone,<br>then click <strong>RUN EVACUATION</strong></p></div>';
+  
   document.querySelectorAll("#sensorList .srow").forEach(row => {
     row.querySelector(".sdot").className = "sdot safe";
     row.querySelector(".sval").style.color = "var(--green)";
     row.querySelector(".sval").textContent = "Normal";
   });
+  
+  document.getElementById("dbEmergencies").textContent = "0";
   drawAll();
+}
+
+function toggleSound() {
+  soundEnabled = !soundEnabled;
+  document.getElementById("soundToggle").textContent = soundEnabled ? "🔔" : "🔕";
+  document.getElementById("soundToggle").classList.toggle("muted", !soundEnabled);
+}
+
+function playAlertSound() {
+  if (!soundEnabled) return;
+  try {
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const oscillator = audioCtx.createOscillator();
+    const gainNode = audioCtx.createGain();
+    oscillator.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+    oscillator.frequency.value = 800;
+    oscillator.type = "sine";
+    gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+    oscillator.start(audioCtx.currentTime);
+    oscillator.stop(audioCtx.currentTime + 0.5);
+  } catch (e) { console.log("Audio not supported"); }
 }
 
 async function initApp() {
@@ -840,7 +1197,7 @@ async function initApp() {
     ROOM_LOOKUP = Object.fromEntries(LAYOUT.rooms.map(room => [room.id, room]));
     buildCorridorLabels();
     document.getElementById("mapTitle").textContent = LAYOUT.building.name || "Building Layout";
-    document.getElementById("mapScale").textContent = `Scale: ${LAYOUT.building.display_scale || "1 unit = 1 meter"} | Orthogonal metric layout`;
+    document.getElementById("mapScale").textContent = `Scale: ${LAYOUT.building.display_scale || "1 unit = 1 meter"}`;
     populateControls();
     setCanvasSize();
     drawAll();

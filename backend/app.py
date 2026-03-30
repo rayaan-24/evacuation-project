@@ -1,49 +1,82 @@
-"""
-app.py - Flask Backend API
-===========================
-This is the brain of the system.
-It receives requests from the frontend and returns paths.
-
-Think of it like a waiter:
-- Frontend asks: "Find path from Room 1, fire in Room 2"
-- This waiter goes to the kitchen (ACO algorithm)
-- Brings back the answer (path + directions)
-"""
-
-from flask import Flask, request, jsonify, send_from_directory
-from flask_cors import CORS
-import json
+import logging
 import os
 import sys
+import time
+from typing import Dict, List
 
-# Make sure we can import our own files
+from flask import Flask, jsonify, request, send_from_directory
+from flask_cors import CORS
+
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from pathfinder import run_pathfinder, load_layout
+from pathfinder import load_layout, run_pathfinder
+
+SUPPORTED_TYPES = {"FIRE", "SMOKE", "BLOCKAGE", "CROWD", "GAS"}
+EMERGENCY_TIMEOUT_SECONDS = int(os.getenv("EMERGENCY_TIMEOUT_SECONDS", "0"))
 
 app = Flask(__name__)
-CORS(app)  # Allow frontend (different port) to talk to this backend
+CORS(app)
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+logger = logging.getLogger("app")
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 LAYOUT_PATH = os.path.join(PROJECT_ROOT, "data", "building_layout.json")
 
+layout_cache = load_layout(LAYOUT_PATH)
+sensor_map = layout_cache.get("sensor_map", {})
 
-def build_sensor_state():
-    """Initialize sensor state from the JSON layout sensor map."""
-    layout = load_layout(LAYOUT_PATH)
-    sensor_map = layout.get("sensor_map", {})
-    return {
-        sensor_id: {"smoke": 0, "flame": 0, "location": room_id}
-        for sensor_id, room_id in sensor_map.items()
+# In-memory real-time state. For production, persist this in a database.
+active_emergencies: List[Dict] = []
+
+
+def normalize_emergency_type(value):
+    emergency_type = str(value or "").strip().upper()
+    return emergency_type if emergency_type in SUPPORTED_TYPES else None
+
+
+def cleanup_expired_emergencies():
+    if EMERGENCY_TIMEOUT_SECONDS <= 0:
+        return
+
+    now = time.time()
+    before = len(active_emergencies)
+    active_emergencies[:] = [
+        event for event in active_emergencies
+        if now - event.get("updated_at", now) <= EMERGENCY_TIMEOUT_SECONDS
+    ]
+    expired = before - len(active_emergencies)
+    if expired:
+        logger.info("Auto-cleared %s expired emergency event(s)", expired)
+
+
+def upsert_emergency(sensor_id, location, emergency_type):
+    now = time.time()
+    for event in active_emergencies:
+        if event.get("sensor_id") == sensor_id:
+            event.update({
+                "sensor_id": sensor_id,
+                "location": location,
+                "type": emergency_type,
+                "updated_at": now,
+            })
+            return event
+
+    event = {
+        "sensor_id": sensor_id,
+        "location": location,
+        "type": emergency_type,
+        "updated_at": now,
     }
-
-
-# Store IoT sensor data in memory (in production, use a database)
-sensor_data = build_sensor_state()
+    active_emergencies.append(event)
+    return event
 
 
 @app.after_request
 def disable_cache(response):
-    """Force the browser to fetch the latest HTML, JSON, and API responses."""
     response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
     response.headers["Pragma"] = "no-cache"
     response.headers["Expires"] = "0"
@@ -52,144 +85,228 @@ def disable_cache(response):
 
 @app.route("/")
 def home():
-    """Serve the frontend demo page at the root URL."""
     return send_from_directory(PROJECT_ROOT, "frontend/smart_evacuation_demo.html")
 
 
 @app.route("/api")
 def api_home():
-    """Simple welcome message for the backend API."""
     return jsonify({
         "message": "Smart Evacuation System API",
         "status": "running",
         "frontend": "/",
-        "endpoints": ["/layout", "/find-path", "/sensor-update", "/sensor-status"]
+        "supported_emergencies": sorted(SUPPORTED_TYPES),
+        "timeout_seconds": EMERGENCY_TIMEOUT_SECONDS,
+        "endpoints": [
+            "/layout",
+            "/find-path",
+            "/sensor-update",
+            "/sensor-status",
+            "/reset-emergencies",
+        ],
     })
 
 
 @app.route("/layout", methods=["GET"])
 def get_layout():
-    """
-    Returns the building layout JSON.
-    Frontend uses this to draw the map.
-    """
-    layout = load_layout(LAYOUT_PATH)
-    return jsonify(layout)
+    return jsonify(load_layout(LAYOUT_PATH))
 
 
 @app.route("/find-path", methods=["POST"])
 def find_path():
-    """
-    Main endpoint: Find evacuation path.
-    
-    Frontend sends:
-    {
-        "start_room": "G07",
-        "fire_rooms": ["G17"],
-        "emergency_type": "fire"
-    }
-    
-    Returns: path, directions, distance
-    """
-    data = request.get_json()
-
-    if not data:
-        return jsonify({"error": "No data received"}), 400
-
+    data = request.get_json(silent=True) or {}
     start_room = data.get("start_room")
-    fire_rooms = data.get("fire_locations") or data.get("fire_rooms", [])
-    emergency_type = data.get("emergency_type", "fire")
 
     if not start_room:
         return jsonify({"error": "start_room is required"}), 400
 
-    print(f"\n[API] Path request: start={start_room}, fire={fire_rooms}")
+    cleanup_expired_emergencies()
 
-    # Build layout path
-    # Run the ACO pathfinder
-    result = run_pathfinder(start_room, fire_rooms, LAYOUT_PATH)
-    result["emergency_type"] = emergency_type
+    requested_emergencies = data.get("emergencies")
+    include_active = data.get("include_active", True)
 
+    merged = []
+    if include_active:
+        merged.extend({"location": e["location"], "type": e["type"]} for e in active_emergencies)
+
+    if isinstance(requested_emergencies, list):
+        merged.extend(requested_emergencies)
+    else:
+        # Backward compatibility for older frontend payloads.
+        for location in data.get("fire_locations") or data.get("fire_rooms", []):
+            merged.append({"location": location, "type": "FIRE"})
+
+    unique_emergencies = []
+    seen = set()
+    for item in merged:
+        location = str(item.get("location", "")).strip()
+        emergency_type = normalize_emergency_type(item.get("type"))
+        key = (location, emergency_type)
+        if location and emergency_type and key not in seen:
+            seen.add(key)
+            unique_emergencies.append({"location": location, "type": emergency_type})
+
+    logger.info("Path request start=%s emergencies=%s", start_room, unique_emergencies)
+    result = run_pathfinder(start_room, unique_emergencies, LAYOUT_PATH)
     return jsonify(result)
 
 
 @app.route("/sensor-update", methods=["POST"])
 def sensor_update():
-    """
-    Arduino sends sensor readings here.
-    
-    Arduino sends:
-    {
-        "sensor_id": "sensor_1",
-        "smoke": 450,
-        "flame": 1
-    }
-    
-    flame = 1 means fire detected!
-    smoke > 300 means heavy smoke!
-    """
-    data = request.get_json()
+    data = request.get_json(silent=True) or {}
+    sensor_id = str(data.get("sensor_id", "")).strip()
+    emergency_type = normalize_emergency_type(data.get("type"))
 
-    if not data:
-        return jsonify({"error": "No data"}), 400
+    if not sensor_id:
+        return jsonify({"error": "sensor_id is required"}), 400
+    if not emergency_type:
+        return jsonify({"error": f"type must be one of {sorted(SUPPORTED_TYPES)}"}), 400
 
-    sensor_id = data.get("sensor_id")
-    if sensor_id not in sensor_data:
-        return jsonify({"error": f"Unknown sensor: {sensor_id}"}), 400
+    location = sensor_map.get(sensor_id)
+    if not location:
+        return jsonify({"error": f"Unknown sensor_id: {sensor_id}"}), 400
 
-    # Update sensor readings
-    sensor_data[sensor_id]["smoke"] = data.get("smoke", 0)
-    sensor_data[sensor_id]["flame"] = data.get("flame", 0)
+    cleanup_expired_emergencies()
+    event = upsert_emergency(sensor_id, location, emergency_type)
 
-    print(f"[IoT] Sensor {sensor_id}: smoke={data.get('smoke')}, flame={data.get('flame')}")
-
-    return jsonify({"status": "updated", "sensor": sensor_id})
+    logger.info("Sensor update sensor=%s location=%s type=%s", sensor_id, location, emergency_type)
+    return jsonify({
+        "status": "updated",
+        "event": {
+            "sensor_id": event["sensor_id"],
+            "location": event["location"],
+            "type": event["type"],
+            "updated_at": event["updated_at"],
+        },
+    })
 
 
 @app.route("/sensor-status", methods=["GET"])
 def sensor_status():
-    """
-    Frontend polls this to get current fire locations from IoT sensors.
-    Returns list of rooms where fire/smoke is detected.
-    """
-    fire_rooms = []
-
-    for sensor_id, readings in sensor_data.items():
-        is_fire = readings["flame"] == 1 or readings["smoke"] > 300
-        if is_fire:
-            fire_rooms.append(readings["location"])
+    cleanup_expired_emergencies()
 
     return jsonify({
-        "sensors": sensor_data,
-        "fire_detected_rooms": fire_rooms,
-        "alert": len(fire_rooms) > 0
+        "active_emergencies": [
+            {
+                "sensor_id": event["sensor_id"],
+                "location": event["location"],
+                "type": event["type"],
+                "updated_at": event["updated_at"],
+            }
+            for event in active_emergencies
+        ],
+        "total_active": len(active_emergencies),
+        "alert": len(active_emergencies) > 0,
     })
+
+
+@app.route("/reset-emergencies", methods=["POST"])
+def reset_emergencies():
+    data = request.get_json(silent=True) or {}
+    sensor_id = data.get("sensor_id")
+    location = data.get("location")
+
+    if sensor_id:
+        before = len(active_emergencies)
+        active_emergencies[:] = [event for event in active_emergencies if event.get("sensor_id") != sensor_id]
+        removed = before - len(active_emergencies)
+    elif location:
+        before = len(active_emergencies)
+        active_emergencies[:] = [event for event in active_emergencies if event.get("location") != location]
+        removed = before - len(active_emergencies)
+    else:
+        removed = len(active_emergencies)
+        active_emergencies.clear()
+
+    logger.info("Reset emergencies removed=%s sensor_id=%s location=%s", removed, sensor_id, location)
+    return jsonify({"status": "reset", "removed": removed, "remaining": len(active_emergencies)})
 
 
 @app.route("/simulate-sensor", methods=["POST"])
 def simulate_sensor():
-    """
-    For testing without real Arduino.
-    Simulates a sensor detecting fire.
-    
-    Send: { "sensor_id": "sensor_1", "fire": true }
-    """
-    data = request.get_json()
-    sensor_id = data.get("sensor_id")
-    fire = data.get("fire", False)
+    data = request.get_json(silent=True) or {}
+    sensor_id = str(data.get("sensor_id", "")).strip()
+    emergency_type = normalize_emergency_type(data.get("type", "FIRE"))
+    active = bool(data.get("active", True))
 
-    if sensor_id in sensor_data:
-        sensor_data[sensor_id]["smoke"] = 500 if fire else 50
-        sensor_data[sensor_id]["flame"] = 1 if fire else 0
-        return jsonify({"status": "simulated", "sensor": sensor_id, "fire": fire})
+    if sensor_id not in sensor_map:
+        return jsonify({"error": f"Unknown sensor_id: {sensor_id}"}), 400
 
-    return jsonify({"error": "Unknown sensor"}), 400
+    if active:
+        event = upsert_emergency(sensor_id, sensor_map[sensor_id], emergency_type)
+        logger.info("Simulated ON %s", event)
+        return jsonify({"status": "simulated_on", "event": event})
+
+    before = len(active_emergencies)
+    active_emergencies[:] = [event for event in active_emergencies if event.get("sensor_id") != sensor_id]
+    logger.info("Simulated OFF sensor=%s removed=%s", sensor_id, before - len(active_emergencies))
+    return jsonify({"status": "simulated_off", "sensor_id": sensor_id})
+
+
+@app.route("/simulation/run", methods=["POST"])
+def run_simulation():
+    """Run multi-agent evacuation simulation"""
+    try:
+        from simulation import EvacuationSimulator
+        from pathfinder import build_graph
+        
+        data = request.get_json(silent=True) or {}
+        rooms = data.get("rooms", ["G01", "G07", "G11", "G13"])
+        danger_zones = data.get("danger_zones", [])
+        max_time = float(data.get("max_time", 300))
+        
+        layout = load_layout(LAYOUT_PATH)
+        graph = build_graph(layout)
+        
+        simulator = EvacuationSimulator(layout, graph)
+        simulator.add_people(rooms)
+        results = simulator.run_simulation(
+            max_time=max_time,
+            danger_nodes=set(danger_zones)
+        )
+        
+        return jsonify({
+            "success": True,
+            "results": results
+        })
+    except Exception as e:
+        logger.error("Simulation error: %s", str(e))
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/simulation/stats", methods=["GET"])
+def simulation_stats():
+    """Get ACO auto-tuning recommendations"""
+    try:
+        from auto_tune import ACOAutoTuner
+        from pathfinder import build_graph
+        
+        layout = load_layout(LAYOUT_PATH)
+        graph = build_graph(layout)
+        
+        tuner = ACOAutoTuner(graph, layout)
+        recommendations = tuner.get_tuning_recommendations()
+        
+        return jsonify({
+            "success": True,
+            "recommendations": recommendations
+        })
+    except Exception as e:
+        logger.error("Auto-tune error: %s", str(e))
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/version", methods=["GET"])
+def version():
+    """Get system version info"""
+    return jsonify({
+        "system": "Smart Evacuation System",
+        "version": "2.0.0",
+        "aco_mode": "enhanced",
+        "algorithms": ["ACO", "Dijkstra", "A*"]
+    })
 
 
 if __name__ == "__main__":
-    print("=" * 50)
-    print("🚀 Smart Evacuation System Backend")
-    print("   Running at http://localhost:5000")
-    print("   Press Ctrl+C to stop")
-    print("=" * 50)
+    logger.info("Smart Evacuation backend listening at http://localhost:5000")
+    logger.info("Emergency timeout is %s seconds (0 disables auto-clear)", EMERGENCY_TIMEOUT_SECONDS)
     app.run(debug=True, host="0.0.0.0", port=5000)
