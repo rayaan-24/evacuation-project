@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IoT Simulation Control Panel</title>
+    <style>
+        :root {
+            --bg: #0d0f14;
+            --panel: #13161e;
+            --card: #1a1d27;
+            --border: #2a2d3a;
+            --text: #e8eaf0;
+            --muted: #8b90a0;
+            --green: #22c55e;
+            --fire: #ff4444;
+            --smoke: #f97316;
+            --gas: #a855f7;
+            --blue: #3b82f6;
+            --yellow: #fbbf24;
+            --accent: #ff6b2b;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            background: var(--panel);
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border: 1px solid var(--border);
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+            color: var(--accent);
+        }
+
+        .status-badge {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .status-badge.connected {
+            background: rgba(34, 197, 94, 0.2);
+            border: 1px solid var(--green);
+            color: var(--green);
+        }
+
+        .status-badge.disconnected {
+            background: rgba(255, 68, 68, 0.2);
+            border: 1px solid var(--fire);
+            color: var(--fire);
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .panel {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 20px;
+        }
+
+        .panel-title {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--accent);
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            width: 100%;
+            margin-bottom: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent), #cc4a10);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(255, 107, 43, 0.4);
+        }
+
+        .btn-secondary {
+            background: var(--card);
+            border: 1px solid var(--border);
+            color: var(--text);
+        }
+
+        .btn-secondary:hover {
+            background: var(--border);
+        }
+
+        .btn-danger {
+            background: rgba(255, 68, 68, 0.2);
+            border: 1px solid var(--fire);
+            color: var(--fire);
+        }
+
+        .btn-danger:hover {
+            background: rgba(255, 68, 68, 0.3);
+        }
+
+        .sensor-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 8px;
+            margin-top: 15px;
+        }
+
+        .sensor-btn {
+            padding: 8px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: var(--card);
+            color: var(--text);
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+
+        .sensor-btn:hover {
+            border-color: var(--accent);
+            transform: translateY(-1px);
+        }
+
+        .sensor-btn.active {
+            background: var(--fire);
+            border-color: var(--fire);
+            color: white;
+        }
+
+        .sensor-btn.fire { background: rgba(255, 68, 68, 0.3); border-color: var(--fire); }
+        .sensor-btn.smoke { background: rgba(249, 115, 22, 0.3); border-color: var(--smoke); }
+        .sensor-btn.gas { background: rgba(168, 85, 247, 0.3); border-color: var(--gas); }
+        .sensor-btn.blockage { background: rgba(59, 130, 246, 0.3); border-color: var(--blue); }
+        .sensor-btn.crowd { background: rgba(251, 191, 36, 0.3); border-color: var(--yellow); }
+
+        .scenario-list {
+            list-style: none;
+        }
+
+        .scenario-item {
+            padding: 12px;
+            margin-bottom: 8px;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .scenario-item:hover {
+            border-color: var(--accent);
+            transform: translateX(4px);
+        }
+
+        .scenario-item.active {
+            border-color: var(--green);
+            background: rgba(34, 197, 94, 0.1);
+        }
+
+        .scenario-name {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .scenario-desc {
+            font-size: 0.8rem;
+            color: var(--muted);
+        }
+
+        .log-container {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 10px;
+            height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.8rem;
+        }
+
+        .log-entry {
+            padding: 4px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .log-entry:last-child {
+            border-bottom: none;
+        }
+
+        .log-time {
+            color: var(--muted);
+            margin-right: 8px;
+        }
+
+        .log-triggered { color: var(--fire); }
+        .log-cleared { color: var(--green); }
+        .log-info { color: var(--blue); }
+        .log-error { color: var(--fire); }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .stat-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--muted);
+            margin-top: 4px;
+            text-transform: uppercase;
+        }
+
+        .type-selector {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .type-btn {
+            padding: 6px 12px;
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            background: var(--card);
+            color: var(--text);
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .type-btn:hover {
+            border-color: var(--accent);
+        }
+
+        .type-btn.selected {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: white;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 20px;
+            color: var(--muted);
+            font-size: 0.85rem;
+        }
+
+        .footer a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        @media (max-width: 768px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .sensor-grid {
+                grid-template-columns: repeat(5, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>IoT Simulation Control Panel</h1>
+        <div class="status-badge disconnected" id="connectionStatus">Checking Connection...</div>
+    </div>
+
+    <div class="main-grid">
+        <!-- Connection & Quick Actions -->
+        <div class="panel">
+            <div class="panel-title">⚡ Quick Actions</div>
+            <button class="btn btn-primary" onclick="testConnection()">🔄 Test Connection</button>
+            <button class="btn btn-secondary" onclick="clearAllEmergencies()">🧹 Clear All Emergencies</button>
+            <button class="btn btn-secondary" onclick="refreshStatus()">📊 Refresh Status</button>
+            <button class="btn btn-danger" onclick="runDemo()">🔥 Run Demo</button>
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value" id="totalSensors">30</div>
+                    <div class="stat-label">Sensors</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="activeEmergencies">0</div>
+                    <div class="stat-label">Active</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="totalTriggers">0</div>
+                    <div class="stat-label">Triggers</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Manual Trigger -->
+        <div class="panel">
+            <div class="panel-title">🎯 Manual Trigger</div>
+            
+            <div class="type-selector">
+                <button class="type-btn selected" data-type="FIRE" onclick="selectType('FIRE')">🔥 Fire</button>
+                <button class="type-btn" data-type="SMOKE" onclick="selectType('SMOKE')">💨 Smoke</button>
+                <button class="type-btn" data-type="GAS" onclick="selectType('GAS')">💨 Gas</button>
+                <button class="type-btn" data-type="BLOCKAGE" onclick="selectType('BLOCKAGE')">🚧 Block</button>
+                <button class="type-btn" data-type="CROWD" onclick="selectType('CROWD')">👥 Crowd</button>
+            </div>
+
+            <p style="font-size: 0.85rem; color: var(--muted); margin-bottom: 10px;">Click a sensor to trigger:</p>
+            
+            <div class="sensor-grid" id="sensorGrid">
+                <!-- Sensors will be generated here -->
+            </div>
+        </div>
+
+        <!-- Scenarios -->
+        <div class="panel">
+            <div class="panel-title">📋 Simulation Scenarios</div>
+            <ul class="scenario-list" id="scenarioList">
+                <!-- Scenarios will be listed here -->
+            </ul>
+        </div>
+
+        <!-- Activity Log -->
+        <div class="panel">
+            <div class="panel-title">📝 Activity Log</div>
+            <button class="btn btn-secondary" onclick="clearLog()" style="margin-bottom: 10px;">Clear Log</button>
+            <div class="log-container" id="logContainer">
+                <div class="log-entry">
+                    <span class="log-time">--:--:--</span>
+                    <span class="log-info">System initialized. Waiting for activity...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>Smart Evacuation System - IoT Simulation Control Panel</p>
+        <p>Open main interface: <a href="http://localhost:5000/" target="_blank">http://localhost:5000/</a></p>
+        <p>For hardware testing, use: <code>python iot_simulator.py</code> in backend folder</p>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:5000';
+        let selectedType = 'FIRE';
+        let activeSensors = new Set();
+        let totalTriggers = 0;
+
+        const SCENARIOS = [
+            { id: 'demo', name: 'Demo Mode', desc: 'Sequential trigger of 5 sensors', sensors: [0, 4, 8, 12, 16] },
+            { id: 'fire_north', name: 'North Wing Fire', desc: 'Fire in north corridors', sensors: [4, 5, 12] },
+            { id: 'fire_south', name: 'South Wing Fire', desc: 'Fire in south corridors', sensors: [6, 7, 16, 17] },
+            { id: 'cascade', name: 'Fire Cascade', desc: 'Fire spreading progressively', sensors: [0, 1, 4, 2, 5, 8] },
+            { id: 'smoke', name: 'Smoke Spread', desc: 'Smoke spreading through building', sensors: [1, 2, 5, 6, 9] },
+            { id: 'gas', name: 'Gas Leak', desc: 'Gas leak in central area', sensors: [13, 15, 19] },
+            { id: 'evacuation', name: 'Route Block', desc: 'Main evacuation routes blocked', sensors: [12, 13, 18, 19] },
+            { id: 'full', name: 'Full Emergency', desc: 'Multiple fires throughout', sensors: [0, 8, 16, 24] }
+        ];
+
+        async function testConnection() {
+            try {
+                const response = await fetch(`${API_BASE}/api`);
+                if (response.ok) {
+                    updateStatus(true);
+                    addLog('Connection successful!', 'info');
+                    refreshStatus();
+                } else {
+                    updateStatus(false);
+                    addLog('Connection failed', 'error');
+                }
+            } catch (error) {
+                updateStatus(false);
+                addLog('Cannot connect to backend. Is it running?', 'error');
+            }
+        }
+
+        function updateStatus(connected) {
+            const badge = document.getElementById('connectionStatus');
+            if (connected) {
+                badge.className = 'status-badge connected';
+                badge.textContent = '✓ Connected';
+            } else {
+                badge.className = 'status-badge disconnected';
+                badge.textContent = '✗ Disconnected';
+            }
+        }
+
+        async function triggerSensor(sensorNum, type = selectedType) {
+            const sensorId = `sensor_${sensorNum}`;
+            try {
+                const response = await fetch(`${API_BASE}/sensor-update`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ sensor_id: sensorId, type: type })
+                });
+
+                if (response.ok) {
+                    activeSensors.add(sensorNum);
+                    totalTriggers++;
+                    updateStats();
+                    updateSensorButton(sensorNum, type);
+                    addLog(`Triggered ${sensorId} (${type})`, 'triggered');
+                } else {
+                    addLog(`Failed to trigger ${sensorId}`, 'error');
+                }
+            } catch (error) {
+                addLog(`Error triggering ${sensorId}: ${error.message}`, 'error');
+            }
+        }
+
+        async function clearSensor(sensorNum) {
+            const sensorId = `sensor_${sensorNum}`;
+            try {
+                const response = await fetch(`${API_BASE}/reset-emergencies`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ sensor_id: sensorId })
+                });
+
+                if (response.ok) {
+                    activeSensors.delete(sensorNum);
+                    updateStats();
+                    resetSensorButton(sensorNum);
+                    addLog(`Cleared ${sensorId}`, 'cleared');
+                }
+            } catch (error) {
+                addLog(`Error clearing ${sensorId}`, 'error');
+            }
+        }
+
+        async function clearAllEmergencies() {
+            try {
+                const response = await fetch(`${API_BASE}/reset-emergencies`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({})
+                });
+
+                if (response.ok) {
+                    activeSensors.clear();
+                    updateStats();
+                    resetAllSensorButtons();
+                    addLog('All emergencies cleared', 'cleared');
+                }
+            } catch (error) {
+                addLog('Error clearing emergencies', 'error');
+            }
+        }
+
+        async function refreshStatus() {
+            try {
+                const response = await fetch(`${API_BASE}/sensor-status`);
+                if (response.ok) {
+                    const data = await response.json();
+                    activeSensors = new Set(data.active_emergencies.map(e => 
+                        parseInt(e.sensor_id.replace('sensor_', ''))
+                    ));
+                    updateStats();
+                    updateAllSensorButtons(data.active_emergencies);
+                }
+            } catch (error) {
+                addLog('Error fetching status', 'error');
+            }
+        }
+
+        async function runDemo() {
+            addLog('Running demo sequence...', 'info');
+            for (let i = 0; i < 5; i++) {
+                const sensors = [0, 4, 8, 12, 16];
+                const types = ['FIRE', 'SMOKE', 'GAS', 'BLOCKAGE', 'CROWD'];
+                await new Promise(resolve => setTimeout(resolve, 1500));
+                await triggerSensor(sensors[i], types[i]);
+            }
+            addLog('Demo complete!', 'info');
+        }
+
+        async function runScenario(scenarioId) {
+            const scenario = SCENARIOS.find(s => s.id === scenarioId);
+            if (!scenario) return;
+
+            addLog(`Starting scenario: ${scenario.name}`, 'info');
+            
+            for (const sensorNum of scenario.sensors) {
+                await new Promise(resolve => setTimeout(resolve, 1500));
+                await triggerSensor(sensorNum);
+            }
+            
+            addLog(`Scenario "${scenario.name}" complete`, 'info');
+        }
+
+        function selectType(type) {
+            selectedType = type;
+            document.querySelectorAll('.type-btn').forEach(btn => {
+                btn.classList.toggle('selected', btn.dataset.type === type);
+            });
+        }
+
+        function updateStats() {
+            document.getElementById('activeEmergencies').textContent = activeSensors.size;
+            document.getElementById('totalTriggers').textContent = totalTriggers;
+        }
+
+        function updateSensorButton(sensorNum, type) {
+            const btn = document.querySelector(`[data-sensor="${sensorNum}"]`);
+            if (btn) {
+                btn.className = `sensor-btn active ${type.toLowerCase()}`;
+            }
+        }
+
+        function resetSensorButton(sensorNum) {
+            const btn = document.querySelector(`[data-sensor="${sensorNum}"]`);
+            if (btn) {
+                btn.className = 'sensor-btn';
+            }
+        }
+
+        function resetAllSensorButtons() {
+            document.querySelectorAll('.sensor-btn').forEach(btn => {
+                btn.className = 'sensor-btn';
+            });
+        }
+
+        function updateAllSensorButtons(emergencies) {
+            resetAllSensorButtons();
+            emergencies.forEach(emp => {
+                const num = parseInt(emp.sensor_id.replace('sensor_', ''));
+                updateSensorButton(num, emp.type);
+            });
+        }
+
+        function addLog(message, type = 'info') {
+            const container = document.getElementById('logContainer');
+            const time = new Date().toLocaleTimeString();
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.innerHTML = `<span class="log-time">${time}</span><span class="log-${type}">${message}</span>`;
+            container.insertBefore(entry, container.firstChild);
+            
+            // Keep only last 50 entries
+            while (container.children.length > 50) {
+                container.removeChild(container.lastChild);
+            }
+        }
+
+        function clearLog() {
+            document.getElementById('logContainer').innerHTML = `
+                <div class="log-entry">
+                    <span class="log-time">${new Date().toLocaleTimeString()}</span>
+                    <span class="log-info">Log cleared</span>
+                </div>
+            `;
+        }
+
+        function generateSensorGrid() {
+            const grid = document.getElementById('sensorGrid');
+            for (let i = 0; i < 30; i++) {
+                const btn = document.createElement('button');
+                btn.className = 'sensor-btn';
+                btn.dataset.sensor = i;
+                btn.textContent = i;
+                btn.onclick = () => {
+                    if (activeSensors.has(i)) {
+                        clearSensor(i);
+                    } else {
+                        triggerSensor(i);
+                    }
+                };
+                btn.oncontextmenu = (e) => {
+                    e.preventDefault();
+                    clearSensor(i);
+                };
+                grid.appendChild(btn);
+            }
+        }
+
+        function generateScenarioList() {
+            const list = document.getElementById('scenarioList');
+            SCENARIOS.forEach(scenario => {
+                const li = document.createElement('li');
+                li.className = 'scenario-item';
+                li.innerHTML = `
+                    <div class="scenario-name">${scenario.name}</div>
+                    <div class="scenario-desc">${scenario.desc}</div>
+                `;
+                li.onclick = () => runScenario(scenario.id);
+                list.appendChild(li);
+            });
+        }
+
+        // Initialize
+        generateSensorGrid();
+        generateScenarioList();
+        testConnection();
+
+        // Auto-refresh status every 3 seconds
+        setInterval(refreshStatus, 3000);
+    </script>
+</body>
+</html>
