@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Smart Evacuation ACO - Enhanced</title>
 <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Exo+2:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
 <style>
 :root {
   --bg: #0d0f14;
@@ -541,6 +542,8 @@ select:focus { outline: none; border-color: var(--accent); }
 
 <button class="sound-toggle" id="soundToggle" onclick="toggleSound()" title="Toggle Sound Alerts">🔔</button>
 
+<script src="renderer.js"></script>
+<script src="interactivity.js"></script>
 <script>
 let LAYOUT = null;
 let ROOM_LOOKUP = {};
@@ -1310,6 +1313,9 @@ function playAlertSound() {
   } catch (e) { console.log("Audio not supported"); }
 }
 
+let floorPlanRenderer = null;
+let floorPlanInteractivity = null;
+
 async function initApp() {
   try {
     const raw = await fetchLayout();
@@ -1319,8 +1325,31 @@ async function initApp() {
     document.getElementById("mapTitle").textContent = LAYOUT.building.name || "Building Layout";
     document.getElementById("mapScale").textContent = `Scale: ${LAYOUT.building.display_scale || "1 unit = 1 meter"}`;
     populateControls();
-    setCanvasSize();
-    drawAll();
+    
+    // Initialize the architectural floor plan renderer
+    if (typeof Renderer !== 'undefined') {
+      floorPlanRenderer = Object.create(Renderer);
+      if (floorPlanRenderer.init('cvs', LAYOUT)) {
+        // Set dark theme to match existing UI
+        floorPlanRenderer.setTheme('dark');
+        
+        // Initialize interactivity
+        if (typeof Interactivity !== 'undefined') {
+          floorPlanInteractivity = Object.create(Interactivity);
+          floorPlanInteractivity.init('cvs', floorPlanRenderer);
+        }
+        
+        console.log('Floor Plan Renderer initialized successfully');
+      } else {
+        // Fallback to old renderer
+        setCanvasSize();
+        drawAll();
+      }
+    } else {
+      // Fallback to old renderer
+      setCanvasSize();
+      drawAll();
+    }
   } catch (err) {
     document.getElementById("mapScale").textContent = "Layout load failed";
     showAlert(err.message);
