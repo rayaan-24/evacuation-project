@@ -253,7 +253,8 @@
     { "id": "WP_G23", "x": 48.2, "y": 25.5, "label": "Door G23" },
     { "id": "WP_G24", "x": 88.0, "y": 25.5, "label": "Door G24" },
     { "id": "WP_G26", "x": 92.0, "y": 68.5, "label": "Door G26" },
-    { "id": "WP_MISC", "x": 89.5, "y": 68.5, "label": "Door MISC" }
+    { "id": "WP_MISC", "x": 89.5, "y": 68.5, "label": "Door MISC" },
+    { "id": "WP_C3C_South", "x": 98.5, "y": 67.0, "label": "C3C South Entry" }
   ],
   "graph_edges": [
     ["J_NW", "WP_C4_W", 20.5],
@@ -274,6 +275,9 @@
     ["J_MC", "J_SC", 22.0],
     ["J_NE", "J_ME", 21.0],
     ["J_ME", "J_SE", 22.0],
+    ["J_SE", "WP_C3C_South", 1.5],
+    ["WP_C3C_South", "J_ME", 20.5],
+    ["WP_C3C_South", "WP_E3", 13.2],
     ["J_NW", "WP_S1", 13.5],
     ["J_NE", "WP_S2", 13.5],
     ["J_SC", "WP_S3", 21.5],
