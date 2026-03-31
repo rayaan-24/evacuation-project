@@ -696,24 +696,22 @@ def generate_directions(path, layout):
 
 
 def simplify_path_nodes(path, graph):
-    simplified = list(path)
-    changed = True
-
-    while changed and len(simplified) >= 3:
-        changed = False
-        for index in range(1, len(simplified) - 1):
-            node_id = simplified[index]
-            if str(node_id).startswith("E"):
-                continue
-
-            prev_id = simplified[index - 1]
-            next_id = simplified[index + 1]
-            if any(neighbor_id == next_id for neighbor_id, _ in graph.get(prev_id, [])):
-                simplified.pop(index)
-                changed = True
-                break
-
-    return simplified
+    # Remove all cycles and repeated nodes from the path
+    node_to_index = {}
+    i = 0
+    while i < len(path):
+        node = path[i]
+        if node in node_to_index:
+            # Cycle detected: remove all nodes between previous occurrence and now
+            prev_index = node_to_index[node]
+            path = path[:prev_index + 1] + path[i:]
+            # Restart from the previous node
+            i = prev_index
+            node_to_index = {n: idx for idx, n in enumerate(path[:i+1])}
+        else:
+            node_to_index[node] = i
+            i += 1
+    return path
 
 
 def run_pathfinder(start_room, emergencies, layout_path="data/building_layout.json"):

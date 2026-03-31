@@ -105,25 +105,22 @@ class AStar:
             for neighbor, dist in self.graph.get(current, []):
                 if neighbor in danger_nodes or neighbor in closed_set:
                     continue
-                
+                # Prevent cycles: do not revisit nodes already in the current path
+                if neighbor in path:
+                    continue
                 # Apply weights for congestion
                 weight_multiplier = 1.0
                 if weights and neighbor in weights:
                     weight_multiplier = 1.0 + weights[neighbor]
-                
                 adjusted_dist = dist * weight_multiplier
                 tentative_g = g_score + adjusted_dist
-                
                 if neighbor not in g_scores or tentative_g < g_scores[neighbor]:
                     g_scores[neighbor] = tentative_g
-                    
                     # Calculate f_score with heuristic
                     h_score = heuristic(neighbor, end, 
                                       node_coords or {}, 
                                       node_coords or {})
-                    
                     f = tentative_g + h_score
-                    
                     heapq.heappush(open_set, (f, tentative_g, neighbor, path + [neighbor]))
         
         print(f"[A*] No path found from {start} to {end}")

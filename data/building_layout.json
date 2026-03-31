@@ -34,7 +34,7 @@
     { "id": "G10", "name": "Classroom G10", "department": "SITE", "x": 100.5, "y": 37.5, "width": 7.5, "height": 10.05, "area_sqft": 811, "area_sqm": 75.34373839, "capacity": 40 },
     { "id": "G11", "name": "Dining Hall G11", "department": "", "x": 22.0, "y": 27.0, "width": 12.0, "height": 13.0, "area_sqft": 1679, "area_sqm": 155.982906, "capacity": 120 },
     { "id": "G12", "name": "Dining Hall G12", "department": "", "x": 66.0, "y": 27.0, "width": 12.0, "height": 13.0, "area_sqft": 1679, "area_sqm": 155.982906, "capacity": 120 },
-    { "id": "G13", "name": "Canteen Arasan", "department": "", "x": 34.0, "y": 1.5, "width": 31.5, "height": 22.5, "area_sqft": 7620, "area_sqm": 707.9152731, "capacity": 320 },
+    { "id": "G13", "name": "Canteen Arasan", "department": "", "x": 26.5, "y": 1.5, "width": 31.5, "height": 22.5, "area_sqft": 7620, "area_sqm": 707.9152731, "capacity": 320 },
     { "id": "G14", "name": "Classroom G14", "department": "SITE", "x": 10.5, "y": 38.0, "width": 7.5, "height": 10.05, "area_sqft": 811, "area_sqm": 75.34373839, "capacity": 40 },
     { "id": "G15", "name": "Girls Toilet", "department": "", "x": 10.5, "y": 27.0, "width": 7.5, "height": 9.33, "area_sqft": 753, "area_sqm": 69.95540691, "capacity": 18 },
     { "id": "G16", "name": "Classroom G16", "department": "SITE", "x": 10.0, "y": 56.6, "width": 8.0, "height": 10.4, "area_sqft": 896, "area_sqm": 83.24043107, "capacity": 44 },
