@@ -22,34 +22,34 @@
     "GAS": { "block": true, "radius": 3 }
   },
   "rooms": [
-    { "id": "G01", "name": "Classroom G01", "department": "SITE", "x": 18.0, "y": 70.0, "width": 8.0, "height": 10.56, "area_sqft": 910, "area_sqm": 84.4960052, "capacity": 48 },
-    { "id": "G02", "name": "Classroom G02", "department": "SITE", "x": 26.5, "y": 70.0, "width": 10.0, "height": 10.05, "area_sqft": 1052, "area_sqm": 100.5, "capacity": 56 },
-    { "id": "G03", "name": "Classroom G03", "department": "SITE", "x": 37.0, "y": 70.0, "width": 10.0, "height": 10.05, "area_sqft": 1052, "area_sqm": 100.5, "capacity": 56 },
-    { "id": "G04", "name": "Classroom G04", "department": "SITE", "x": 47.5, "y": 70.0, "width": 8.0, "height": 10.35, "area_sqft": 891, "area_sqm": 82.80026013, "capacity": 46 },
-    { "id": "G05", "name": "Classroom G05", "department": "SITE", "x": 63.0, "y": 70.0, "width": 8.0, "height": 10.13, "area_sqft": 872, "area_sqm": 81.01077666, "capacity": 44 },
-    { "id": "G06", "name": "Electrical Room", "department": "", "x": 71.5, "y": 49.0, "width": 4.0, "height": 7.01, "area_sqft": 302, "area_sqm": 28.05648458, "capacity": 4 },
-    { "id": "G07", "name": "Smart Classroom", "department": "SITE", "x": 42.0, "y": 49.0, "width": 14.0, "height": 11.51, "area_sqft": 1734, "area_sqm": 161.0925307, "capacity": 90 },
-    { "id": "G08", "name": "Classroom G08", "department": "SITE", "x": 63.0, "y": 49.0, "width": 6.8, "height": 8.14, "area_sqft": 596, "area_sqm": 55.36975102, "capacity": 28 },
-    { "id": "G09", "name": "Boys Toilet", "department": "", "x": 100.5, "y": 27.0, "width": 8.0, "height": 8.37, "area_sqft": 721, "area_sqm": 66.98253437, "capacity": 18 },
-    { "id": "G10", "name": "Classroom G10", "department": "SITE", "x": 100.5, "y": 37.5, "width": 7.5, "height": 10.05, "area_sqft": 811, "area_sqm": 75.34373839, "capacity": 40 },
+    { "id": "G01", "name": "Classroom G01", "department": "SITE", "x": 21.0, "y": 70.0, "width": 8.0, "height": 10.56, "area_sqft": 910, "area_sqm": 84.4960052, "capacity": 48 },
+    { "id": "G02", "name": "Classroom G02", "department": "SITE", "x": 30.0, "y": 70.0, "width": 10.0, "height": 10.05, "area_sqft": 1052, "area_sqm": 100.5, "capacity": 56 },
+    { "id": "G03", "name": "Classroom G03", "department": "SITE", "x": 40.0, "y": 70.0, "width": 10.0, "height": 10.05, "area_sqft": 1052, "area_sqm": 100.5, "capacity": 56 },
+    { "id": "G04", "name": "Classroom G04", "department": "SITE", "x": 50.0, "y": 70.0, "width": 8.0, "height": 10.35, "area_sqft": 891, "area_sqm": 82.80026013, "capacity": 46 },
+    { "id": "G05", "name": "Classroom G05", "department": "SITE", "x": 62.0, "y": 70.0, "width": 8.0, "height": 10.13, "area_sqft": 872, "area_sqm": 81.01077666, "capacity": 44 },
+    { "id": "G06", "name": "Electrical Room", "department": "", "x": 71.5, "y": 48.0, "width": 4.0, "height": 7.01, "area_sqft": 302, "area_sqm": 28.05648458, "capacity": 4 },
+    { "id": "G07", "name": "Smart Classroom", "department": "SITE", "x": 44.0, "y": 48.0, "width": 14.0, "height": 11.51, "area_sqft": 1734, "area_sqm": 161.0925307, "capacity": 90 },
+    { "id": "G08", "name": "Classroom G08", "department": "SITE", "x": 62.0, "y": 48.0, "width": 6.8, "height": 8.14, "area_sqft": 596, "area_sqm": 55.36975102, "capacity": 28 },
+    { "id": "G09", "name": "Boys Toilet", "department": "", "x": 100.0, "y": 27.0, "width": 8.0, "height": 8.37, "area_sqft": 721, "area_sqm": 66.98253437, "capacity": 18 },
+    { "id": "G10", "name": "Classroom G10", "department": "SITE", "x": 100.0, "y": 37.5, "width": 7.5, "height": 10.05, "area_sqft": 811, "area_sqm": 75.34373839, "capacity": 40 },
     { "id": "G11", "name": "Dining Hall G11", "department": "", "x": 22.0, "y": 27.0, "width": 12.0, "height": 13.0, "area_sqft": 1679, "area_sqm": 155.982906, "capacity": 120 },
     { "id": "G12", "name": "Dining Hall G12", "department": "", "x": 66.0, "y": 27.0, "width": 12.0, "height": 13.0, "area_sqft": 1679, "area_sqm": 155.982906, "capacity": 120 },
     { "id": "G13", "name": "Canteen Arasan", "department": "", "x": 26.5, "y": 1.5, "width": 31.5, "height": 22.5, "area_sqft": 7620, "area_sqm": 707.9152731, "capacity": 320 },
     { "id": "G14", "name": "Classroom G14", "department": "SITE", "x": 10.5, "y": 38.0, "width": 7.5, "height": 10.05, "area_sqft": 811, "area_sqm": 75.34373839, "capacity": 40 },
     { "id": "G15", "name": "Girls Toilet", "department": "", "x": 10.5, "y": 27.0, "width": 7.5, "height": 9.33, "area_sqft": 753, "area_sqm": 69.95540691, "capacity": 18 },
-    { "id": "G16", "name": "Classroom G16", "department": "SITE", "x": 10.0, "y": 56.6, "width": 8.0, "height": 10.4, "area_sqft": 896, "area_sqm": 83.24043107, "capacity": 44 },
-    { "id": "G17", "name": "SD & Management Lab", "department": "SITE", "x": 5.0, "y": 49.0, "width": 12.0, "height": 12.75, "area_sqft": 1647, "area_sqm": 153.0100334, "capacity": 70 },
-    { "id": "G18", "name": "Embedded & IoT Lab", "department": "SITE", "x": 21.5, "y": 49.0, "width": 9.5, "height": 10.0, "area_sqft": 1023, "area_sqm": 95.03901895, "capacity": 42 },
-    { "id": "G18A", "name": "IP Lab", "department": "SITE", "x": 31.5, "y": 49.0, "width": 6.0, "height": 9.17, "area_sqft": 592, "area_sqm": 54.99814195, "capacity": 24 },
+    { "id": "G16", "name": "Classroom G16", "department": "SITE", "x": 10.0, "y": 59.6, "width": 8.0, "height": 10.4, "area_sqft": 896, "area_sqm": 83.24043107, "capacity": 44 },
+    { "id": "G17", "name": "SD & Management Lab", "department": "SITE", "x": 6.0, "y": 47.5, "width": 12.0, "height": 12.75, "area_sqft": 1647, "area_sqm": 153.0100334, "capacity": 70 },
+    { "id": "G18", "name": "Embedded & IoT Lab", "department": "SITE", "x": 21.0, "y": 48.0, "width": 9.5, "height": 10.0, "area_sqft": 1023, "area_sqm": 95.03901895, "capacity": 42 },
+    { "id": "G18A", "name": "IP Lab", "department": "SITE", "x": 31.5, "y": 48.0, "width": 6.0, "height": 9.17, "area_sqft": 592, "area_sqm": 54.99814195, "capacity": 24 },
     { "id": "G19", "name": "Mobile App Development Lab", "department": "SITE", "x": 72.0, "y": 70.0, "width": 9.5, "height": 10.0, "area_sqft": 1023, "area_sqm": 95.03901895, "capacity": 42 },
-    { "id": "G19A", "name": "Automation Lab", "department": "SITE", "x": 82.0, "y": 70.0, "width": 6.0, "height": 9.17, "area_sqft": 592, "area_sqm": 54.99814195, "capacity": 24 },
-    { "id": "G20", "name": "Data Science Lab", "department": "SITE", "x": 84.0, "y": 49.0, "width": 12.0, "height": 12.75, "area_sqft": 1647, "area_sqm": 153.0100334, "capacity": 70 },
+    { "id": "G19A", "name": "Automation Lab", "department": "SITE", "x": 83.5, "y": 70.0, "width": 6.0, "height": 9.17, "area_sqft": 592, "area_sqm": 54.99814195, "capacity": 24 },
+    { "id": "G20", "name": "Data Science Lab", "department": "SITE", "x": 84.8, "y": 48.0, "width": 12.0, "height": 12.75, "area_sqft": 1647, "area_sqm": 153.0100334, "capacity": 70 },
     { "id": "G21", "name": "Staff Toilet", "department": "", "x": 79.5, "y": 27.0, "width": 4.0, "height": 9.29, "area_sqft": 400, "area_sqm": 37.16090673, "capacity": 10 },
     { "id": "G22", "name": "Dean Office", "department": "SITE", "x": 35.0, "y": 27.0, "width": 9.1, "height": 10.0, "area_sqft": 980, "area_sqm": 91.04422148, "capacity": 18 },
     { "id": "G23", "name": "HOD Cabin - SITE", "department": "SITE", "x": 44.6, "y": 27.0, "width": 8.45, "height": 10.0, "area_sqft": 910, "area_sqm": 84.5410628, "capacity": 12 },
     { "id": "G24", "name": "Classroom G24", "department": "SITE", "x": 84.0, "y": 27.0, "width": 8.25, "height": 10.0, "area_sqft": 888, "area_sqm": 82.49721293, "capacity": 44 },
-    { "id": "MISC", "name": "Store", "department": "", "x": 89.0, "y": 70.0, "width": 2.5, "height": 2.97, "area_sqft": 80, "area_sqm": 7.432181345, "capacity": 4 },
-    { "id": "G26", "name": "Janitor's Store", "department": "", "x": 92.0, "y": 70.0, "width": 1.5, "height": 1.86, "area_sqft": 30, "area_sqm": 2.787068004, "capacity": 2 }
+    { "id": "MISC", "name": "Store", "department": "", "x": 90.0, "y": 70.0, "width": 2.5, "height": 2.97, "area_sqft": 80, "area_sqm": 7.432181345, "capacity": 4 },
+    { "id": "G26", "name": "Janitor's Store", "department": "", "x": 94.0, "y": 70.0, "width": 1.5, "height": 1.86, "area_sqft": 30, "area_sqm": 2.787068004, "capacity": 2 }
   ],
   "corridors": [
     { "id": "C1A", "name": "C1-1_Main_Corridor_North_Upper", "x": 58.0, "y": 16.0, "width": 4.0, "height": 8.0 },
@@ -84,8 +84,8 @@
     { "id": "C7C", "name": "C7-3_East_Exit_Lobby", "x": 100.0, "y": 57.0, "width": 8.0, "height": 4.0 }
   ],
   "stairs": [
-    { "id": "S1", "name": "North West Stair", "x": 20.0, "y": 8.0, "width": 6.0, "height": 8.0 },
-    { "id": "S2", "name": "North East Stair", "x": 92.0, "y": 8.0, "width": 6.0, "height": 8.0 },
+    { "id": "S1", "name": "North West Stair", "x": 22.0, "y": 8.0, "width": 6.0, "height": 8.0 },
+    { "id": "S2", "name": "North East Stair", "x": 90.0, "y": 8.0, "width": 6.0, "height": 8.0 },
     { "id": "S3", "name": "South Stair", "x": 56.0, "y": 88.0, "width": 8.0, "height": 4.0 }
   ],
   "lifts": [
@@ -124,8 +124,8 @@
     { "id": "D_G22", "name": "Door G22", "room_id": "G22", "corridor_id": "C4A", "x": 38.5, "y": 26.5, "width": 2.0, "height": 0.5, "orientation": "horizontal" },
     { "id": "D_G23", "name": "Door G23", "room_id": "G23", "corridor_id": "C4A", "x": 47.2, "y": 26.5, "width": 2.0, "height": 0.5, "orientation": "horizontal" },
     { "id": "D_G24", "name": "Door G24", "room_id": "G24", "corridor_id": "C4B", "x": 87.0, "y": 26.5, "width": 2.0, "height": 0.5, "orientation": "horizontal" },
-    { "id": "D_G26", "name": "Door G26", "room_id": "G26", "corridor_id": "C6B", "x": 91.7, "y": 69.5, "width": 1.0, "height": 0.5, "orientation": "horizontal" },
-    { "id": "D_MISC", "name": "Door MISC", "room_id": "MISC", "corridor_id": "C6B", "x": 89.2, "y": 69.5, "width": 1.0, "height": 0.5, "orientation": "horizontal" }
+    { "id": "D_G26", "name": "Door G26", "room_id": "G26", "corridor_id": "C6B", "x": 94.0, "y": 69.5, "width": 1.0, "height": 0.5, "orientation": "horizontal" },
+    { "id": "D_MISC", "name": "Door MISC", "room_id": "MISC", "corridor_id": "C6B", "x": 90.0, "y": 69.5, "width": 1.0, "height": 0.5, "orientation": "horizontal" }
   ],
   "hazard_zones": [],
   "connections": {
@@ -253,7 +253,8 @@
     { "id": "WP_G23", "x": 48.2, "y": 25.5, "label": "Door G23" },
     { "id": "WP_G24", "x": 88.0, "y": 25.5, "label": "Door G24" },
     { "id": "WP_G26", "x": 92.0, "y": 68.5, "label": "Door G26" },
-    { "id": "WP_MISC", "x": 89.5, "y": 68.5, "label": "Door MISC" }
+    { "id": "WP_MISC", "x": 89.5, "y": 68.5, "label": "Door MISC" },
+    { "id": "WP_C3C_South", "x": 98.5, "y": 67.0, "label": "C3C South Entry" }
   ],
   "graph_edges": [
     ["J_NW", "WP_C4_W", 20.5],
@@ -274,6 +275,9 @@
     ["J_MC", "J_SC", 22.0],
     ["J_NE", "J_ME", 21.0],
     ["J_ME", "J_SE", 22.0],
+    ["J_SE", "WP_C3C_South", 1.5],
+    ["WP_C3C_South", "J_ME", 20.5],
+    ["WP_C3C_South", "WP_E3", 13.2],
     ["J_NW", "WP_S1", 13.5],
     ["J_NE", "WP_S2", 13.5],
     ["J_SC", "WP_S3", 21.5],

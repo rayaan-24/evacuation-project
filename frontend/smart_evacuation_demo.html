@@ -544,6 +544,7 @@ select:focus { outline: none; border-color: var(--accent); }
 
 <script src="renderer.js"></script>
 <script src="interactivity.js"></script>
+<script src="sensor_overlay.js"></script>
 <script>
 let LAYOUT = null;
 let ROOM_LOOKUP = {};
@@ -738,6 +739,11 @@ function drawAll() {
   if (currentPath.length > 1) {
     drawAnimatedPath();
     if (walkingPerson) drawWalkingPerson();
+  }
+  
+  // Draw sensor overlay
+  if (sensorOverlay) {
+    sensorOverlay.draw();
   }
   
   requestAnimationFrame(drawAll);
@@ -1315,6 +1321,7 @@ function playAlertSound() {
 
 let floorPlanRenderer = null;
 let floorPlanInteractivity = null;
+let sensorOverlay = null;
 
 async function initApp() {
   try {
@@ -1349,6 +1356,13 @@ async function initApp() {
       // Fallback to old renderer
       setCanvasSize();
       drawAll();
+    }
+    
+    // Initialize sensor overlay
+    if (typeof SensorOverlay !== 'undefined' && LAYOUT) {
+      sensorOverlay = new SensorOverlay('cvs', LAYOUT);
+      sensorOverlay.init();
+      console.log('Sensor Overlay initialized');
     }
   } catch (err) {
     document.getElementById("mapScale").textContent = "Layout load failed";

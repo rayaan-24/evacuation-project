@@ -2,7 +2,8 @@ import logging
 import os
 import sys
 import time
-from typing import Dict, List
+from datetime import datetime
+from typing import Dict, List, Optional
 
 from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
@@ -31,6 +32,9 @@ sensor_map = layout_cache.get("sensor_map", {})
 
 # In-memory real-time state. For production, persist this in a database.
 active_emergencies: List[Dict] = []
+
+# ESP32 Device Registry
+esp32_devices: Dict[str, Dict] = {}
 
 
 def normalize_emergency_type(value):
@@ -163,12 +167,21 @@ def sensor_update():
 
     location = sensor_map.get(sensor_id)
     if not location:
-        return jsonify({"error": f"Unknown sensor_id: {sensor_id}"}), 400
+        # For ESP32 devices, we might get unknown sensor IDs
+        # Fallback to using the sensor_id as location
+        location = sensor_id
+        logger.warning("Unknown sensor_id: %s, using as location", sensor_id)
 
     cleanup_expired_emergencies()
     event = upsert_emergency(sensor_id, location, emergency_type)
+    
+    # Track source (ESP32 vs Serial)
+    source = data.get("source", data.get("device_id", "unknown"))
+    event["source"] = source
 
-    logger.info("Sensor update sensor=%s location=%s type=%s", sensor_id, location, emergency_type)
+    logger.info("Sensor update sensor=%s location=%s type=%s source=%s", 
+                sensor_id, location, emergency_type, source)
+    
     return jsonify({
         "status": "updated",
         "event": {
@@ -176,6 +189,7 @@ def sensor_update():
             "location": event["location"],
             "type": event["type"],
             "updated_at": event["updated_at"],
+            "source": source,
         },
     })
 
@@ -191,11 +205,17 @@ def sensor_status():
                 "location": event["location"],
                 "type": event["type"],
                 "updated_at": event["updated_at"],
+                "source": event.get("source", "unknown"),
             }
             for event in active_emergencies
         ],
         "total_active": len(active_emergencies),
         "alert": len(active_emergencies) > 0,
+        "esp32_devices": {
+            "total": len(esp32_devices),
+            "online": sum(1 for d in esp32_devices.values() 
+                         if time.time() - d.get("last_seen", 0) < 120)
+        }
     })
 
 
@@ -306,7 +326,219 @@ def version():
     })
 
 
+# ============================================================
+# ESP32 Device Management Endpoints
+# ============================================================
+
+@app.route("/esp32/register", methods=["POST"])
+def esp32_register():
+    """
+    Register an ESP32 device when it connects.
+    
+    Payload:
+    {
+        "device_id": "ESP32-001",
+        "location": "Floor 1 - North Wing",
+        "ip_address": "192.168.1.101",
+        "wifi_ssid": "MyWiFi",
+        "button_count": 30,
+        "firmware_version": "1.0"
+    }
+    """
+    data = request.get_json(silent=True) or {}
+    
+    device_id = data.get("device_id")
+    if not device_id:
+        return jsonify({"error": "device_id is required"}), 400
+    
+    now = time.time()
+    
+    esp32_devices[device_id] = {
+        "device_id": device_id,
+        "location": data.get("location", "Unknown"),
+        "ip_address": data.get("ip_address"),
+        "wifi_ssid": data.get("wifi_ssid"),
+        "button_count": data.get("button_count", 30),
+        "firmware_version": data.get("firmware_version", "1.0"),
+        "registered_at": now,
+        "last_seen": now,
+        "status": "online",
+        "total_triggers": 0,
+        "online_duration_seconds": 0
+    }
+    
+    logger.info("ESP32 registered: %s @ %s (%s)", device_id, 
+                data.get("ip_address"), data.get("location"))
+    
+    return jsonify({
+        "status": "registered",
+        "device_id": device_id,
+        "message": "Device registered successfully",
+        "server_time": now
+    }), 201
+
+
+@app.route("/esp32/heartbeat", methods=["POST"])
+def esp32_heartbeat():
+    """
+    Receive heartbeat from ESP32 device.
+    
+    Payload:
+    {
+        "device_id": "ESP32-001",
+        "rssi": -45,
+        "uptime_ms": 3600000,
+        "total_triggers": 150
+    }
+    """
+    data = request.get_json(silent=True) or {}
+    
+    device_id = data.get("device_id")
+    if not device_id:
+        return jsonify({"error": "device_id is required"}), 400
+    
+    if device_id in esp32_devices:
+        esp32_devices[device_id]["last_seen"] = time.time()
+        esp32_devices[device_id]["rssi"] = data.get("rssi")
+        esp32_devices[device_id]["uptime_ms"] = data.get("uptime_ms")
+        esp32_devices[device_id]["total_triggers"] = data.get("total_triggers", 0)
+        esp32_devices[device_id]["status"] = "online"
+        
+        return jsonify({
+            "status": "ok",
+            "device_id": device_id,
+            "server_time": time.time()
+        })
+    
+    return jsonify({
+        "status": "unknown_device",
+        "device_id": device_id,
+        "message": "Device not registered. Please register first."
+    }), 404
+
+
+@app.route("/esp32/devices", methods=["GET"])
+def esp32_list_devices():
+    """Get list of all registered ESP32 devices"""
+    devices = []
+    now = time.time()
+    
+    for device_id, info in esp32_devices.items():
+        # Update online duration
+        if "registered_at" in info:
+            info["online_duration_seconds"] = now - info["registered_at"]
+        
+        # Check if device is stale (no heartbeat for 2 minutes)
+        last_seen = info.get("last_seen", 0)
+        if now - last_seen > 120:
+            info["status"] = "offline"
+        
+        devices.append(info)
+    
+    return jsonify({
+        "devices": devices,
+        "total": len(devices),
+        "online": sum(1 for d in devices if d.get("status") == "online"),
+        "offline": sum(1 for d in devices if d.get("status") == "offline")
+    })
+
+
+@app.route("/esp32/devices/<device_id>", methods=["GET"])
+def esp32_get_device(device_id):
+    """Get info about specific ESP32 device"""
+    if device_id not in esp32_devices:
+        return jsonify({"error": "Device not found"}), 404
+    
+    info = esp32_devices[device_id].copy()
+    info["online_duration_seconds"] = time.time() - info.get("registered_at", time.time())
+    
+    return jsonify(info)
+
+
+@app.route("/esp32/devices/<device_id>", methods=["DELETE"])
+def esp32_unregister_device(device_id):
+    """Unregister an ESP32 device"""
+    if device_id in esp32_devices:
+        del esp32_devices[device_id]
+        logger.info("ESP32 unregistered: %s", device_id)
+        return jsonify({
+            "status": "unregistered",
+            "device_id": device_id
+        })
+    
+    return jsonify({"error": "Device not found"}), 404
+
+
+@app.route("/esp32/status", methods=["GET"])
+def esp32_status():
+    """Get ESP32 system status"""
+    now = time.time()
+    
+    devices_by_status = {
+        "online": [],
+        "offline": []
+    }
+    
+    for device_id, info in esp32_devices.items():
+        last_seen = info.get("last_seen", 0)
+        if now - last_seen > 120:
+            status = "offline"
+        else:
+            status = "online"
+        
+        devices_by_status[status].append({
+            "device_id": device_id,
+            "location": info.get("location"),
+            "ip_address": info.get("ip_address"),
+            "last_seen": last_seen,
+            "total_triggers": info.get("total_triggers", 0)
+        })
+    
+    return jsonify({
+        "total_devices": len(esp32_devices),
+        "online_count": len(devices_by_status["online"]),
+        "offline_count": len(devices_by_status["offline"]),
+        "devices_online": devices_by_status["online"],
+        "devices_offline": devices_by_status["offline"]
+    })
+
+
+# ============================================================
+# Legacy Serial Reader Support (for Arduino via USB)
+# ============================================================
+
+@app.route("/serial/connect", methods=["POST"])
+def serial_connect():
+    """
+    Simulate serial connection status.
+    (Used for legacy Arduino integration)
+    """
+    data = request.get_json(silent=True) or {}
+    port = data.get("port", "unknown")
+    
+    logger.info("Serial connection: port=%s", port)
+    
+    return jsonify({
+        "status": "connected",
+        "port": port,
+        "device": "arduino_uno",
+        "message": "Serial connection established"
+    })
+
+
+@app.route("/serial/disconnect", methods=["POST"])
+def serial_disconnect():
+    """Simulate serial disconnection"""
+    logger.info("Serial disconnected")
+    
+    return jsonify({
+        "status": "disconnected",
+        "message": "Serial connection closed"
+    })
+
+
 if __name__ == "__main__":
     logger.info("Smart Evacuation backend listening at http://localhost:5000")
     logger.info("Emergency timeout is %s seconds (0 disables auto-clear)", EMERGENCY_TIMEOUT_SECONDS)
+    logger.info("ESP32 WiFi mode: enabled (devices can connect via HTTP)")
     app.run(debug=True, host="0.0.0.0", port=5000)
