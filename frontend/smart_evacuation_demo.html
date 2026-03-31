@@ -169,6 +169,10 @@ select:focus { outline: none; border-color: var(--accent); }
 
 .cbl:hover { background: var(--card); }
 .cbl input { accent-color: var(--fire); width: 13px; height: 13px; }
+.cbl-info { display: flex; align-items: center; gap: 6px; flex: 1; }
+.cbl-type { background: var(--input); border: 1px solid var(--border); color: var(--text); font-size: 0.68rem; padding: 2px 4px; border-radius: 3px; font-family: var(--mono); cursor: pointer; min-width: 80px; }
+.cbl-type:focus { outline: none; border-color: var(--accent); }
+.cbl-type option { background: var(--panel); }
 
 .runbtn {
   background: linear-gradient(135deg, var(--accent), #cc4a10);
@@ -215,6 +219,24 @@ select:focus { outline: none; border-color: var(--accent); }
 
 .li { display: flex; align-items: center; gap: 8px; font-size: 0.72rem; color: var(--muted); padding: 2px 0; }
 .lc { width: 16px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+
+.emergency-contacts { margin-top: 15px; padding-top: 12px; border-top: 1px solid var(--border); }
+.ec-t { font-size: 0.65rem; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); font-family: var(--mono); margin-bottom: 8px; }
+.ec-btn { display: flex; align-items: center; gap: 6px; padding: 7px 10px; margin-bottom: 6px; background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.35); border-radius: 6px; color: var(--fire); font-size: 0.7rem; font-family: var(--mono); text-decoration: none; transition: all 0.2s; }
+.ec-btn:hover { background: rgba(239,68,68,0.25); transform: scale(1.02); cursor: pointer; }
+.ec-btn:active { transform: scale(0.98); }
+
+.no-path-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.88); display: flex; align-items: center; justify-content: center; z-index: 9999; }
+.no-path-content { background: var(--card); border: 2px solid var(--fire); border-radius: 14px; padding: 35px; max-width: 480px; text-align: center; animation: noPathPulse 2s ease-in-out infinite; }
+@keyframes noPathPulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(255,68,68,0.5); } 50% { box-shadow: 0 0 30px 10px rgba(255,68,68,0.3); } }
+.no-path-icon { font-size: 3.5rem; margin-bottom: 15px; }
+.no-path-title { color: var(--fire); font-size: 1.3rem; font-weight: 700; margin-bottom: 18px; text-transform: uppercase; letter-spacing: 1px; }
+.no-path-text { color: var(--text); font-size: 0.88rem; line-height: 1.7; margin-bottom: 22px; text-align: left; }
+.no-path-text strong { color: var(--accent); }
+.no-path-step { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 10px; }
+.no-path-step-num { background: var(--fire); color: white; width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; flex-shrink: 0; }
+.no-path-btn { background: var(--fire); color: white; border: none; padding: 12px 30px; border-radius: 8px; cursor: pointer; font-size: 0.95rem; font-weight: 600; transition: all 0.2s; }
+.no-path-btn:hover { background: #cc3333; transform: scale(1.05); }
 
 .mapsec { background: #0a0c10; display: flex; flex-direction: column; overflow: hidden; }
 
@@ -437,19 +459,8 @@ select:focus { outline: none; border-color: var(--accent); }
     </div>
 
     <div class="cg">
-      <label class="cl">Emergency Zones (Hold Ctrl to select multiple)</label>
+      <label class="cl">Emergency Zones (Select zones and assign types)</label>
       <div class="cblist" id="fireCBs"></div>
-    </div>
-
-    <div class="cg">
-      <label class="cl">Emergency Type</label>
-      <select id="emerType">
-        <option value="FIRE">FIRE - Critical</option>
-        <option value="SMOKE">SMOKE - Hazard</option>
-        <option value="BLOCKAGE">BLOCKAGE - Obstruction</option>
-        <option value="CROWD">CROWD - Congestion</option>
-        <option value="GAS">GAS - Toxic</option>
-      </select>
     </div>
 
     <button class="runbtn" id="runBtn" onclick="runEvac()">
@@ -470,6 +481,12 @@ select:focus { outline: none; border-color: var(--accent); }
       <div class="li"><span class="lc" style="background:#22c55e"></span> Safe Path</div>
       <div class="li"><span class="lc" style="background:#22c55e"></span> Exit</div>
       <div class="li"><span class="lc" style="background:#a78bfa"></span> Staircase</div>
+    </div>
+
+    <div class="emergency-contacts">
+      <div class="ec-t">Emergency Contacts</div>
+      <a href="tel:911" class="ec-btn">📞 911 - Emergency</a>
+      <a href="tel:100" class="ec-btn">📞 100 - Police Control</a>
     </div>
   </aside>
 
@@ -634,7 +651,19 @@ function populateControls() {
   LAYOUT.corridors.forEach((corridor, index) => {
     const label = document.createElement("label");
     label.className = "cbl";
-    label.innerHTML = `<input type="checkbox" value="${corridor.id}"> ${shortCorridorLabel(corridor)} - ${corridor.name.split('_').pop() || 'Corridor'}`;
+    label.innerHTML = `
+      <input type="checkbox" value="${corridor.id}" onchange="onCorridorCheckChange(this)">
+      <div class="cbl-info">
+        <span>${shortCorridorLabel(corridor)} - ${corridor.name.split('_').pop() || 'Corridor'}</span>
+        <select class="cbl-type" id="type_${corridor.id}" disabled onchange="onTypeChange(this)">
+          <option value="FIRE" selected>FIRE</option>
+          <option value="SMOKE">SMOKE</option>
+          <option value="BLOCKAGE">BLOCKAGE</option>
+          <option value="CROWD">CROWD</option>
+          <option value="GAS">GAS</option>
+        </select>
+      </div>
+    `;
     fires.appendChild(label);
   });
 
@@ -647,6 +676,18 @@ function populateControls() {
     row.innerHTML = `<span class="sdot safe"></span><span>${sensorId.replace('_', ' ')}</span><span class="sval" style="color:var(--green)">Normal</span>`;
     sensors.appendChild(row);
   });
+}
+
+function onCorridorCheckChange(checkbox) {
+  const corridorId = checkbox.value;
+  const typeSelect = document.getElementById(`type_${corridorId}`);
+  if (typeSelect) {
+    typeSelect.disabled = !checkbox.checked;
+  }
+}
+
+function onTypeChange(typeSelect) {
+  drawAll();
 }
 
 function buildCorridorLabels() {
@@ -719,24 +760,49 @@ function drawGrid() {
 function drawCorridors() {
   for (const c of LAYOUT.corridors) {
     const isBlocked = activeBlockedElements.has(c.id);
+    const typeSelect = document.getElementById(`type_${c.id}`);
+    const zoneType = typeSelect ? typeSelect.value : null;
     const x = pxX(c.x), y = pxY(c.y), w = pxSize(c.w), h = pxSize(c.h);
     const label = shortCorridorLabel(c);
     const fontSize = Math.max(7, Math.min(h * 0.45, 11));
     
-    ctx.fillStyle = isBlocked ? "#4b5563" : "#2a2d3a";
+    let fillColor = "#2a2d3a";
+    let strokeColor = "#3b4455";
+    let textColor = "#8b90a0";
+    
+    if (zoneType && isBlocked) {
+      const emergencyColor = EMERGENCY_COLORS[zoneType] || '#ff4444';
+      fillColor = adjustColor(emergencyColor, -0.7);
+      strokeColor = emergencyColor;
+      textColor = "#ffffff";
+    } else if (isBlocked) {
+      fillColor = "#4b5563";
+      strokeColor = "#1f2937";
+      textColor = "#9ca3af";
+    }
+    
+    ctx.fillStyle = fillColor;
     ctx.fillRect(x, y, w, h);
-    ctx.strokeStyle = isBlocked ? "#1f2937" : "#3b4455";
-    ctx.lineWidth = 1;
-    ctx.setLineDash([4, 4]);
+    ctx.strokeStyle = strokeColor;
+    ctx.lineWidth = isBlocked ? 2 : 1;
+    ctx.setLineDash(isBlocked ? [] : [4, 4]);
     ctx.strokeRect(x, y, w, h);
     ctx.setLineDash([]);
     
-    ctx.fillStyle = isBlocked ? "#9ca3af" : "#8b90a0";
+    ctx.fillStyle = textColor;
     ctx.font = `bold ${fontSize}px var(--mono)`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillText(label, x + w / 2, y + h / 2);
   }
+}
+
+function adjustColor(hex, factor) {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  const adjust = (c) => Math.max(0, Math.min(255, Math.round(c + (255 - c) * factor)));
+  return `rgb(${adjust(r)}, ${adjust(g)}, ${adjust(b)})`;
 }
 
 function drawRooms() {
@@ -1016,6 +1082,40 @@ function showAlert(msg) {
   document.getElementById("statusText").textContent = "ALERT ACTIVE";
 }
 
+function showNoPathAlert() {
+  document.querySelectorAll('.no-path-modal').forEach(m => m.remove());
+  
+  const modal = document.createElement('div');
+  modal.className = 'no-path-modal';
+  modal.innerHTML = `
+    <div class="no-path-content">
+      <div class="no-path-icon">🚨</div>
+      <div class="no-path-title">⚠️ NO SAFE EXIT AVAILABLE</div>
+      <div class="no-path-text">
+        <strong>All evacuation routes are blocked!</strong><br><br>
+        <div class="no-path-step">
+          <div class="no-path-step-num">1</div>
+          <div>Stay calm and move to the nearest safe area (away from hazards)</div>
+        </div>
+        <div class="no-path-step">
+          <div class="no-path-step-num">2</div>
+          <div>Call emergency services immediately using the contacts below</div>
+        </div>
+        <div class="no-path-step">
+          <div class="no-path-step-num">3</div>
+          <div>Seal doors and windows if smoke is present</div>
+        </div>
+        <div class="no-path-step">
+          <div class="no-path-step-num">4</div>
+          <div>Wait for rescue team assistance - DO NOT PANIC</div>
+        </div>
+      </div>
+      <button class="no-path-btn" onclick="this.closest('.no-path-modal').remove()">I UNDERSTAND - WAITING FOR HELP</button>
+    </div>
+  `;
+  document.body.appendChild(modal);
+}
+
 function clearRenderedPath() {
   currentPath = [];
   pathProg = 0;
@@ -1052,7 +1152,8 @@ function updateSensors(fires) {
   });
   
   fires.forEach(zoneId => {
-    const zoneType = document.getElementById("emerType").value.toLowerCase();
+    const typeSelect = document.getElementById(`type_${zoneId}`);
+    const zoneType = typeSelect ? typeSelect.value.toLowerCase() : 'fire';
     const row = Array.from(rows).find(r => r.dataset.roomId === zoneId);
     if (!row) return;
     row.querySelector(".sdot").className = `sdot ${zoneType}`;
@@ -1082,19 +1183,28 @@ async function runEvac() {
   if (!LAYOUT) { showAlert("Layout is still loading."); return; }
 
   const start = document.getElementById("startRoom").value;
-  const emergencyType = document.getElementById("emerType").value;
-  const fires = Array.from(document.querySelectorAll("#fireCBs input:checked")).map(c => c.value);
+  const selectedZones = Array.from(document.querySelectorAll("#fireCBs input:checked")).map(c => c.value);
 
   if (!start) { showAlert("Please select a start location."); return; }
-  if (fires.includes(start)) { showAlert("Cannot start from a hazard zone."); return; }
+  if (selectedZones.length === 0) { showAlert("Please select at least one emergency zone."); return; }
+  if (selectedZones.includes(start)) { showAlert("Cannot start from a hazard zone."); return; }
 
-  fireSources = [...fires];
-  activeBlockedElements = new Set(fires);
+  const emergencies = selectedZones.map(zoneId => ({
+    location: zoneId,
+    type: document.getElementById(`type_${zoneId}`).value
+  }));
+
+  const typeCounts = {};
+  emergencies.forEach(e => { typeCounts[e.type] = (typeCounts[e.type] || 0) + 1; });
+  const typeSummary = Object.entries(typeCounts).map(([type, count]) => `${type}: ${count}`).join(", ");
+
+  fireSources = [...selectedZones];
+  activeBlockedElements = new Set(selectedZones);
   activeHazardZones = [];
   
   document.getElementById("runBtn").disabled = true;
   document.getElementById("ov").classList.add("on");
-  updateSensors(fires);
+  updateSensors(selectedZones);
 
   try {
     let result = null;
@@ -1105,7 +1215,7 @@ async function runEvac() {
         const response = await fetch(`${base}/find-path`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ start_room: start, emergencies: fires.map(f => ({ location: f, type: emergencyType })) })
+          body: JSON.stringify({ start_room: start, emergencies: emergencies })
         });
         result = await response.json();
         if (!response.ok || result.success === false) throw new Error(result.error || "No safe path found.");
@@ -1116,7 +1226,7 @@ async function runEvac() {
 
     if (!result || lastError) throw lastError || new Error("Could not reach the backend.");
 
-    activeBlockedElements = new Set(result.blocked_elements || fires);
+    activeBlockedElements = new Set(result.blocked_elements || selectedZones);
     activeHazardZones = result.hazard_zones || [];
     
     animatePath(result.path_coords || []);
@@ -1126,16 +1236,23 @@ async function runEvac() {
     document.getElementById("sSteps").textContent = result.total_steps ?? (result.directions || []).length;
     document.getElementById("sExit").textContent = result.best_exit || "--";
     
-    showAlert(`${emergencyType} at ${fires.length} zone(s) | Route: ${result.best_exit} | ${Number(result.total_distance_m || 0).toFixed(1)}m`);
+    showAlert(`${selectedZones.length} zones: ${typeSummary} | Route: ${result.best_exit} | ${Number(result.total_distance_m || 0).toFixed(1)}m`);
     showDirs(result.directions || []);
     
   } catch (err) {
     clearRenderedPath();
-    activeBlockedElements = new Set(err.result?.blocked_elements || fires);
+    activeBlockedElements = new Set(err.result?.blocked_elements || selectedZones);
     activeHazardZones = err.result?.hazard_zones || [];
     document.getElementById("stats").style.display = "none";
     showDirs([]);
-    showAlert(`Error: ${err.message}`);
+    
+    const errorMsg = err.message || "";
+    if (errorMsg.includes("No safe path") || errorMsg.includes("no safe path") || errorMsg.includes("No path")) {
+      showNoPathAlert();
+      showAlert("ALERT: No safe evacuation route available!");
+    } else {
+      showAlert(`Error: ${errorMsg}`);
+    }
     drawAll();
   } finally {
     document.getElementById("ov").classList.remove("on");
@@ -1149,8 +1266,11 @@ function resetAll() {
   activeBlockedElements = new Set();
   activeHazardZones = [];
   document.getElementById("startRoom").value = "";
-  document.getElementById("emerType").value = "FIRE";
   document.querySelectorAll("#fireCBs input").forEach(c => c.checked = false);
+  document.querySelectorAll("#fireCBs .cbl-type").forEach(sel => {
+    sel.value = "FIRE";
+    sel.disabled = true;
+  });
   document.getElementById("stats").style.display = "none";
   document.getElementById("alert").style.display = "none";
   document.getElementById("statusBadge").classList.remove("alert-active");
