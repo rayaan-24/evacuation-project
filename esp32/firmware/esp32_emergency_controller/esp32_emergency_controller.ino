@@ -578,8 +578,8 @@ void printHeader() {
   Serial.println("║   30-Button Emergency Matrix + WiFi                ║");
   Serial.println("║                                                    ║");
   Serial.println("║   Version: 1.0                                     ║");
-  Serial.println("║   Hardware: ESP32 DevKit v1                       ║");
-  Serial.println("║   Connectivity: WiFi (HTTP)                       ║");
+  Serial.println("║   Hardware: ESP32 DevKit v1                        ║");
+  Serial.println("║   Connectivity: WiFi (HTTP)                        ║");
   Serial.println("║                                                    ║");
   Serial.println("╚════════════════════════════════════════════════════╝");
   Serial.println();
