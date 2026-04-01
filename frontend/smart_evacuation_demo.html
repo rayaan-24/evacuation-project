@@ -460,7 +460,7 @@ select:focus { outline: none; border-color: var(--accent); }
     </div>
 
     <div class="cg">
-      <label class="cl">Emergency Zones (Select zones and assign types)</label>
+      <label class="cl">Emergency Zones (Optional)</label>
       <div class="cblist" id="fireCBs"></div>
     </div>
 
@@ -480,8 +480,15 @@ select:focus { outline: none; border-color: var(--accent); }
       <div class="li"><span class="lc" style="background:#fbbf24"></span> CROWD</div>
       <div class="li"><span class="lc" style="background:#a855f7"></span> GAS</div>
       <div class="li"><span class="lc" style="background:#22c55e"></span> Safe Path</div>
-      <div class="li"><span class="lc" style="background:#22c55e"></span> Exit</div>
       <div class="li"><span class="lc" style="background:#a78bfa"></span> Staircase</div>
+    </div>
+
+    <div class="lgd">
+      <div class="lgd-t">Exits</div>
+      <div class="li"><span class="lc" style="background:#22c55e;border:1px solid #166534"></span> <strong>E1</strong> - North West</div>
+      <div class="li"><span class="lc" style="background:#22c55e;border:1px solid #166534"></span> <strong>E2</strong> - North East</div>
+      <div class="li"><span class="lc" style="background:#22c55e;border:1px solid #166534"></span> <strong>E3</strong> - East Side</div>
+      <div class="li"><span class="lc" style="background:#22c55e;border:1px solid #166534"></span> <strong>E4</strong> - South Exit</div>
     </div>
 
     <div class="emergency-contacts">
@@ -520,8 +527,8 @@ select:focus { outline: none; border-color: var(--accent); }
     <div class="dircont" id="dirs">
       <div class="dph">
         <div class="ic">↑</div>
-        <p>Select a start location and emergency zone,<br>then click <strong>RUN EVACUATION</strong></p>
-        <p style="font-size:.65rem;opacity:.5;margin-top:6px">The ACO algorithm will find the safest route</p>
+        <p>Select a start location<br>then click <strong>RUN EVACUATION</strong></p>
+        <p style="font-size:.65rem;opacity:.5;margin-top:6px">Emergency zones are optional - ACO will find safest route</p>
       </div>
     </div>
 
@@ -915,6 +922,14 @@ function drawExits() {
     ctx.strokeStyle = "#166534";
     ctx.lineWidth = 2;
     ctx.strokeRect(x, y, w, h);
+    
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "bold 10px var(--mono)";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(e.id, x + w / 2, y + h / 2);
+    ctx.textBaseline = "alphabetic";
+    
     ctx.fillStyle = "#14532d";
     ctx.font = "bold 8px var(--mono)";
     ctx.textAlign = "center";
@@ -1195,7 +1210,8 @@ async function runEvac() {
   const selectedZones = Array.from(document.querySelectorAll("#fireCBs input:checked")).map(c => c.value);
 
   if (!start) { showAlert("Please select a start location."); return; }
-  if (selectedZones.length === 0) { showAlert("Please select at least one emergency zone."); return; }
+  // Corridor/emergency zone selection is now optional - can run with no hazards
+  // if (selectedZones.length === 0) { showAlert("Please select at least one emergency zone."); return; }
   if (selectedZones.includes(start)) { showAlert("Cannot start from a hazard zone."); return; }
 
   const emergencies = selectedZones.map(zoneId => ({
@@ -1284,7 +1300,7 @@ function resetAll() {
   document.getElementById("alert").style.display = "none";
   document.getElementById("statusBadge").classList.remove("alert-active");
   document.getElementById("statusText").textContent = "SYSTEM READY";
-  document.getElementById("dirs").innerHTML = '<div class="dph"><div class="ic">↑</div><p>Select a start location and emergency zone,<br>then click <strong>RUN EVACUATION</strong></p></div>';
+  document.getElementById("dirs").innerHTML = '<div class="dph"><div class="ic">↑</div><p>Select a start location<br>then click <strong>RUN EVACUATION</strong></p></div>';
   
   document.querySelectorAll("#sensorList .srow").forEach(row => {
     row.querySelector(".sdot").className = "sdot safe";
