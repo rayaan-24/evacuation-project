@@ -714,6 +714,17 @@ def simplify_path_nodes(path, graph):
     return path
 
 
+def calculate_path_distance_from_coords(path_coords, meters_per_unit=1.0):
+    if not path_coords or len(path_coords) < 2:
+        return 0.0
+    total = 0.0
+    for i in range(1, len(path_coords)):
+        dx = path_coords[i]["x"] - path_coords[i - 1]["x"]
+        dy = path_coords[i]["y"] - path_coords[i - 1]["y"]
+        total += math.sqrt(dx * dx + dy * dy)
+    return round(total * meters_per_unit, 1)
+
+
 def run_pathfinder(start_room, emergencies, layout_path="data/building_layout.json"):
     layout = load_layout(layout_path)
     graph = build_graph(layout)
@@ -778,6 +789,9 @@ def run_pathfinder(start_room, emergencies, layout_path="data/building_layout.js
         hazard_info["blocked_zones"],
     )
 
+    meters_per_unit = layout.get("building", {}).get("meters_per_unit", 1.0)
+    total_distance_m = calculate_path_distance_from_coords(path_coords, meters_per_unit)
+
     return {
         "success": True,
         "start_room": start_room,
@@ -785,7 +799,7 @@ def run_pathfinder(start_room, emergencies, layout_path="data/building_layout.js
         "best_exit": best_exit,
         "path_nodes": best_path,
         "path_coords": path_coords,
-        "total_distance_m": round(best_dist, 1),
+        "total_distance_m": total_distance_m,
         "danger_nodes": sorted(danger_nodes),
         "blocked_elements": hazard_info["blocked_elements"],
         "hazard_zones": hazard_info["blocked_zones"],
