@@ -67,7 +67,8 @@
 // Examples:
 //   - "http://192.168.1.100:5000"
 //   - "http://192.168.0.50:5000"
-#define API_HOST "http://192.168.1.100:5000"
+// #define API_HOST "http://192.168.1.100:5000"
+#define API_HOST "https://evacuation-project.onrender.com/"
 
 // ========================================
 // DEVICE IDENTIFICATION
